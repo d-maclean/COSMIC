@@ -6,7 +6,7 @@
      &                  bhspin1,bhspin2,binstate,mergertype,
      &                  jp,tphys,switchedCE,rad,tms,evolve_type,disrupt,
      &                  lumin,B_0,bacc,tacc,epoch,menv_bpp,renv_bpp,
-     &                  bkick,dtm)
+     &                  bkick,deltam_1,deltam_2,dtm)
       IMPLICIT NONE
       INCLUDE 'const_bse.h'
 *
@@ -36,9 +36,10 @@
       REAL*8 RC1,RC2,Q1,Q2,RL1,RL2,LAMB1,LAMB2
       REAL*8 MENV,RENV,MENVD,RZAMS,vk
       REAL*8 Porbi,Porbf,Mcf,Menvf,qi,qf,G
-      REAL*8 kick_info(2,17),fallback,M1i,M2i
+      REAL*8 kick_info(2,18),fallback,M1i,M2i
       REAL*8 bkick(20)
       REAL*8 bhspin1,bhspin2,dtm
+      REAL*8 deltam_1,deltam_2
       common /fall/fallback
       INTEGER formation1,formation2
       REAL*8 sigmahold
@@ -99,9 +100,9 @@
 * Decide which CE prescription to use based on LAMBDA flag
 * MJZ: NOTE - Nanjing lambda prescription DOES NOT WORK!
 *
-      IF (using_METISSE) THEN
+      IF (using_METISSE.eq.1) THEN
         CALL comenv_lambda(KW,M01,L1,R1,MENVD,LAMBDAF,STAR1,LAMB1)
-      ELSEIF (using_SSE) THEN
+      ELSEIF (using_SSE.eq.1) THEN
         RZAMS = RZAMSF(M01)
         LAMB1 = CELAMF(KW,M01,L1,R1,RZAMS,MENVD,LAMBDAF)
       ENDIF
@@ -121,9 +122,9 @@
 *
       IF(KW2.GE.2.AND.KW2.LE.9.AND.KW2.NE.7)THEN
          MENVD = MENV/(M2-MC2)
-         IF (using_METISSE) THEN
+         IF (using_METISSE.eq.1) THEN
             CALL comenv_lambda(KW,M02,L2,R2,MENVD,LAMBDAF,STAR2,LAMB2)
-         ELSEIF (using_SSE) THEN
+         ELSEIF (using_SSE.eq.1) THEN
             RZAMS = RZAMSF(M02)
             LAMB2 = CELAMF(KW,M02,L2,R2,RZAMS,MENVD,LAMBDAF)
          ENDIF
@@ -317,7 +318,7 @@
      &                       (rad1_bpp**2.d0))**(1.d0/4.d0))
                        teff2 = 1000.d0*((1130.d0*lumin(2)/
      &                       (rad2_bpp**2.d0))**(1.d0/4.d0)) 
-                       CALL writebpp(jp,tphys,evolve_type,
+                       CALL writetab(jp,tphys,evolve_type,
      &                       mass1_bpp,mass2_bpp,kstar1_bpp,
      &                       kstar2_bpp,SEP_postCE,TB,ECC,
      &                       rrl1_bpp,rrl2_bpp,
@@ -327,13 +328,15 @@
      &                      RC2,RC1,menv_bpp(2),menv_bpp(1),renv_bpp(2),
      &                      renv_bpp(1),OSPIN2,OSPIN1,B_0(2),B_0(1),
      &                      bacc(2),bacc(1),tacc(2),tacc(1),epoch(2),
-     &                      epoch(1),bhspin2,bhspin1)
+     &                      epoch(1),bhspin2,bhspin1,
+     &                      deltam_2,deltam_1,formation2,formation1,
+     &                      binstate,mergertype,'bpp')
                    else
                        teff1 = 1000.d0*((1130.d0*lumin(1)/
      &                       (rad1_bpp**2.d0))**(1.d0/4.d0))
                        teff2 = 1000.d0*((1130.d0*lumin(2)/
      &                       (rad2_bpp**2.d0))**(1.d0/4.d0))
-                       CALL writebpp(jp,tphys,evolve_type,
+                       CALL writetab(jp,tphys,evolve_type,
      &                       mass1_bpp,mass2_bpp,kstar1_bpp,
      &                       kstar2_bpp,SEP_postCE,TB,ECC,
      &                       rrl1_bpp,rrl2_bpp,
@@ -343,7 +346,9 @@
      &                      RC1,RC2,menv_bpp(1),menv_bpp(2),renv_bpp(1),
      &                      renv_bpp(2),OSPIN1,OSPIN2,B_0(1),B_0(2),
      &                      bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),
-     &                      epoch(2),bhspin1,bhspin2)
+     &                      epoch(2),bhspin1,bhspin2,
+     &                      deltam_1,deltam_2,formation1,formation2,
+     &                      binstate,mergertype,'bpp')
                    endif
                endif
                CALL kick(KW1,M_postCE,M1,M2,ECC,SEP_postCE,
@@ -623,7 +628,7 @@
      &                       (rad1_bpp**2.d0))**(1.d0/4.d0))
                        teff2 = 1000.d0*((1130.d0*lumin(2)/
      &                       (rad2_bpp**2.d0))**(1.d0/4.d0))
-                       CALL writebpp(jp,tphys,evolve_type,
+                       CALL writetab(jp,tphys,evolve_type,
      &                       mass1_bpp,mass2_bpp,kstar1_bpp,
      &                       kstar2_bpp,SEP_postCE,TB,ECC,
      &                       rrl1_bpp,rrl2_bpp,
@@ -633,13 +638,15 @@
      &                      RC2,RC1,menv_bpp(2),menv_bpp(1),renv_bpp(2),
      &                      renv_bpp(1),OSPIN2,OSPIN1,B_0(2),B_0(1),
      &                      bacc(2),bacc(1),tacc(2),tacc(1),epoch(2),
-     &                      epoch(1),bhspin2,bhspin1)
+     &                      epoch(1),bhspin2,bhspin1,
+     &                      deltam_2,deltam_1,formation2,formation1,
+     &                      binstate,mergertype,'bpp')
                    else
                        teff1 = 1000.d0*((1130.d0*lumin(1)/
      &                       (rad1_bpp**2.d0))**(1.d0/4.d0))
                        teff2 = 1000.d0*((1130.d0*lumin(2)/
      &                       (rad2_bpp**2.d0))**(1.d0/4.d0))
-                       CALL writebpp(jp,tphys,evolve_type,
+                       CALL writetab(jp,tphys,evolve_type,
      &                       mass1_bpp,mass2_bpp,kstar1_bpp,
      &                       kstar2_bpp,SEP_postCE,TB,ECC,
      &                       rrl1_bpp,rrl2_bpp,
@@ -649,7 +656,9 @@
      &                      RC1,RC2,menv_bpp(1),menv_bpp(2),renv_bpp(1),
      &                      renv_bpp(2),OSPIN1,OSPIN2,B_0(1),B_0(2),
      &                      bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),
-     &                      epoch(2),bhspin1,bhspin2)
+     &                      epoch(2),bhspin1,bhspin2,
+     &                      deltam_1,deltam_2,formation1,formation2,
+     &                      binstate,mergertype,'bpp')
                    endif
                endif
 * USSN: if ussn flag is set, have reduced kicks for stripped He stars (SN=8)
@@ -788,7 +797,7 @@
      &                       (rad1_bpp**2.d0))**(1.d0/4.d0))
                        teff2 = 1000.d0*((1130.d0*lumin(2)/
      &                       (rad2_bpp**2.d0))**(1.d0/4.d0))
-                       CALL writebpp(jp,tphys,evolve_type,
+                       CALL writetab(jp,tphys,evolve_type,
      &                       mass1_bpp,mass2_bpp,kstar1_bpp,
      &                       kstar2_bpp,SEP_postCE,TB,ECC,
      &                       rrl1_bpp,rrl2_bpp,
@@ -798,13 +807,15 @@
      &                      RC2,RC1,menv_bpp(2),menv_bpp(1),renv_bpp(2),
      &                      renv_bpp(1),OSPIN2,OSPIN1,B_0(2),B_0(1),
      &                      bacc(2),bacc(1),tacc(2),tacc(1),epoch(2),
-     &                      epoch(1),bhspin2,bhspin1)
+     &                      epoch(1),bhspin2,bhspin1,
+     &                      deltam_2,deltam_1,formation2,formation1,
+     &                      binstate,mergertype,'bpp')
                    else
                        teff1 = 1000.d0*((1130.d0*lumin(1)/
      &                       (rad1_bpp**2.d0))**(1.d0/4.d0))
                        teff2 = 1000.d0*((1130.d0*lumin(2)/
      &                       (rad2_bpp**2.d0))**(1.d0/4.d0))
-                       CALL writebpp(jp,tphys,evolve_type,
+                       CALL writetab(jp,tphys,evolve_type,
      &                       mass1_bpp,mass2_bpp,kstar1_bpp,
      &                       kstar2_bpp,SEP_postCE,TB,ECC,
      &                       rrl1_bpp,rrl2_bpp,
@@ -814,7 +825,9 @@
      &                      RC1,RC2,menv_bpp(1),menv_bpp(2),renv_bpp(1),
      &                      renv_bpp(2),OSPIN1,OSPIN2,B_0(1),B_0(2),
      &                      bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),
-     &                      epoch(2),bhspin1,bhspin2)
+     &                      epoch(2),bhspin1,bhspin2,
+     &                      deltam_1,deltam_2,formation1,formation2,
+     &                      binstate,mergertype,'bpp')
                    endif
                endif
                CALL kick(KW2,M_postCE,M2,M1,ECC,SEP_postCE,
@@ -908,7 +921,7 @@
          if(output) write(*,*)'coel 2 1:',KW,KW1,KW2,M1,M2,MF,MC22,
      & TB,OORB
          IF(KW.EQ.2)THEN
-            if (using_METISSE) call set_star_type(star1)
+            if (using_METISSE.eq.1) call set_star_type(star1)
             CALL star(KW,M1,M1,TM2,TN,TSCLS2,LUMS,GB,ZPARS,dtm,star1)
             IF(GB(9).GE.MC1)THEN
                M01 = M1
@@ -920,7 +933,7 @@
      & TB,OORB
          ELSEIF(KW.EQ.7)THEN
             M01 = M1
-            if (using_METISSE) call set_star_type(star1)
+            if (using_METISSE.eq.1) call set_star_type(star1)
             CALL star(KW,M01,M1,TM1,TN,TSCLS1,LUMS,GB,ZPARS,dtm,star1)
             AJ1 = TM1*(FAGE1*MC1 + FAGE2*MC22)/(MC1 + MC22)
             if(output) write(*,*)'coel 2 3:',KW,KW1,KW2,M1,M01,MC22,
@@ -1019,7 +1032,7 @@
      &                       (rad1_bpp**2.d0))**(1.d0/4.d0))
                        teff2 = 1000.d0*((1130.d0*lumin(2)/
      &                       (rad2_bpp**2.d0))**(1.d0/4.d0))
-                       CALL writebpp(jp,tphys,evolve_type,
+                       CALL writetab(jp,tphys,evolve_type,
      &                       mass1_bpp,mass2_bpp,kstar1_bpp,
      &                       kstar2_bpp,-1.d0,TB,0.d0,
      &                       rrl1_bpp,rrl2_bpp,
@@ -1029,13 +1042,15 @@
      &                      RC2,RC1,menv_bpp(2),menv_bpp(1),renv_bpp(2),
      &                      renv_bpp(1),OSPIN2,OSPIN1,B_0(2),B_0(1),
      &                      bacc(2),bacc(1),tacc(2),tacc(1),epoch(2),
-     &                      epoch(1),bhspin2,bhspin1)
+     &                      epoch(1),bhspin2,bhspin1,
+     &                      deltam_2,deltam_1,formation2,formation1,
+     &                      binstate,mergertype,'bpp')
                    else
                        teff1 = 1000.d0*((1130.d0*lumin(1)/
      &                       (rad1_bpp**2.d0))**(1.d0/4.d0))
                        teff2 = 1000.d0*((1130.d0*lumin(2)/
      &                       (rad2_bpp**2.d0))**(1.d0/4.d0))
-                       CALL writebpp(jp,tphys,evolve_type,
+                       CALL writetab(jp,tphys,evolve_type,
      &                       mass1_bpp,mass2_bpp,kstar1_bpp,
      &                       kstar2_bpp,-1.d0,TB,0.d0,
      &                       rrl1_bpp,rrl2_bpp,
@@ -1045,7 +1060,9 @@
      &                      RC1,RC2,menv_bpp(1),menv_bpp(2),renv_bpp(1),
      &                      renv_bpp(2),OSPIN1,OSPIN2,B_0(1),B_0(2),
      &                      bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),
-     &                      epoch(2),bhspin1,bhspin2)
+     &                      epoch(2),bhspin1,bhspin2,
+     &                      deltam_1,deltam_2,formation1,formation2,
+     &                      binstate,mergertype,'bpp')
                    endif
             endif
             CALL kick(KW,MF,M1,0.d0,0.d0,-1.d0,0.d0,vk,star1,
