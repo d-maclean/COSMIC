@@ -301,13 +301,22 @@ class Evolve(object):
 
                     kwargs1 = {k: v}
                     initialbinarytable = initialbinarytable.assign(**kwargs1)
+                _evolvebin.se_flags.using_metisse = 1
+                _evolvebin.se_flags.using_sse = 0
+
+
             elif SSEDict['stellar_engine'] == 'sse':
                 kwargs1 = {'stellar_engine': 'sse'}
                 initialbinarytable = initialbinarytable.assign(**kwargs1)
                 for col in ['path_to_tracks', 'path_to_he_tracks']:
                     kwargs1 = {col: ''}
                     initialbinarytable = initialbinarytable.assign(**kwargs1)
+                _evolvebin.se_flags.using_sse = 1
+                _evolvebin.se_flags.using_metisse = 0
             
+        else:
+            raise ValueError("Use either 'sse' or 'metisse' as stellar engine") 
+           
         for k, v in BSEDict.items():
             if k in initialbinarytable.keys():
                 warnings.warn("The value for {0} in initial binary table is being "
@@ -569,6 +578,7 @@ def _evolve_single_system(f):
         _evolvebin.metvars.zsun = f["zsun"]
         _evolvebin.snvars.kickflag = f["kickflag"]
         _evolvebin.cmcpass.using_cmc = 0
+        
         if f["stellar_engine"] == "sse":
             _evolvebin.se_flags.using_sse = 1
             _evolvebin.se_flags.using_metisse = 0
@@ -609,8 +619,8 @@ def _evolve_single_system(f):
                                                               np.zeros(20),
                                                               np.zeros(20),
                                                               f["kick_info"],
-                                                              path_to_tracks,
-                                                              path_to_he_tracks)
+                                                              f["path_to_tracks"],
+                                                              f["path_to_he_tracks"])
                                                               
         if bpp_index<0:
             raise ValueError("Failed in METISSE_zcnsts")
