@@ -441,6 +441,8 @@ class Evolve(object):
             initial_conditions[i]["n_col_bcm"] = len(bcm_columns)
             initial_conditions[i]["col_inds_bcm"] = col_inds_bcm
 
+        _, _, _, _, _, zpars = _evolve_single_system(initial_conditions[0], zpars=None)
+
         # check if a pool was passed
         if pool is None:
             with MultiPool(processes=nproc) as pool:
@@ -456,7 +458,8 @@ class Evolve(object):
                         itr_block = itr_next
                     output = list(pool.map(_evolve_multi_system, initial_conditions_blocked))
                 else:
-                    output = list(pool.map(_evolve_single_system, initial_conditions))
+                    evolv_args = partial(_evolve_single_system, zpars=zpars)
+                    output = list(pool.map(evolv_args, initial_conditions))
         else:
             # evolve systems
             if n_per_block > 0:
@@ -470,7 +473,8 @@ class Evolve(object):
                     itr_block = itr_next
                 output = list(pool.map(_evolve_multi_system, initial_conditions_blocked))
             else:
-                output = list(pool.map(_evolve_single_system, initial_conditions))
+                evolv_args = partial(_evolve_single_system, zpars=zpars)
+                output = list(pool.map(evolv_args, initial_conditions))
 
         output = np.array(output, dtype=object)
         bpp_arrays = np.vstack(output[:, 1])
