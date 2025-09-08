@@ -31,6 +31,7 @@ import pandas as pd
 import warnings
 import os
 import sys
+from functools import partial
 try:
     import multiprocessing
     multiprocessing.set_start_method("fork")
@@ -511,8 +512,9 @@ class Evolve(object):
         return bpp, bcm, initialbinarytable, kick_info
 
 
-def _evolve_single_system(f):
+def _evolve_single_system(f, zpars=None):
     try:
+        if zpars is None: zpars = np.zeros(20)
         f["kick_info"] = np.zeros((2, len(KICK_COLUMNS)-1))
         # determine if we already have a compact object, if yes than one SN has already occured
         if (f["kstar_1"] in range(10, 15)) or (f["kstar_2"] in range(10, 15)):
@@ -601,7 +603,7 @@ def _evolve_single_system(f):
         _evolvebin.col.n_col_bcm = f["n_col_bcm"]
         _evolvebin.col.col_inds_bcm = f["col_inds_bcm"]
 
-        [bpp_index, bcm_index, kick_info] = _evolvebin.evolv2([f["kstar_1"], f["kstar_2"]],
+        [zpars, bpp_index, bcm_index, kick_info] = _evolvebin.evolv2([f["kstar_1"], f["kstar_2"]],
                                                               [f["mass_1"], f["mass_2"]],
                                                               f["porb"], f["ecc"], f["metallicity"], 
                                                               f["tphysf"], f["dtp"],
@@ -620,10 +622,9 @@ def _evolve_single_system(f):
                                                               [f["tms_1"], f["tms_2"]],
                                                               [f["bhspin_1"], f["bhspin_2"]],
                                                               f["tphys"],
-                                                              np.zeros(20),
+                                                              zpars,
                                                               np.zeros(20),
                                                               f["kick_info"])
-                                                              
         if bpp_index<0:
             raise ValueError("Failed in METISSE_zcnsts")
         else:
@@ -636,7 +637,7 @@ def _evolve_single_system(f):
             bcm = np.hstack((bcm, np.ones((bcm.shape[0], 1))*f["bin_num"]))
             kick_info = np.hstack((kick_info, np.ones((kick_info.shape[0], 1))*f["bin_num"]))
 
-        return f, bpp, bcm, kick_info, _evolvebin.snvars.natal_kick_array.copy()
+        return f, bpp, bcm, kick_info, _evolvebin.snvars.natal_kick_array.copy(), zpars
 
     except Exception as e:
         print(e)
@@ -645,6 +646,7 @@ def _evolve_single_system(f):
 
 def _evolve_multi_system(f):
     try:
+        zpars = None
         res_bcm = np.zeros(f.shape[0], dtype=object)
         res_bpp = np.zeros(f.shape[0], dtype=object)
         res_kick_info = np.zeros(f.shape[0], dtype=object)
@@ -652,8 +654,7 @@ def _evolve_multi_system(f):
         for i in range(0, f.shape[0]):
 
             # call evolve single system
-            _, bpp, bcm, kick_info, _ = _evolve_single_system(f[i])
-
+            _, bpp, bcm, kick_info, _, zpars = _evolve_single_system(f[i], zpars=zpars)
             # add results to pre-allocated list
             res_bpp[i] = bpp
             res_bcm[i] = bcm
