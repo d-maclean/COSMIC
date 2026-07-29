@@ -181,8 +181,8 @@
 *
       IF(using_METISSE.eq.1)THEN
          IF(cemergeflag.eq.1)THEN
-            if(MC1.lt.1d-10.and.
-     &         (KW1.eq.0.or.KW1.eq.1.or.KW1.eq.2).or.KW1.eq.7.or.
+            if((MC1.lt.1d-10.and.
+     &         KW1.eq.0.or.KW1.eq.1.or.KW1.eq.2).or.KW1.eq.7.or.
      &         KW1.eq.8.or.KW1.eq.10.or.KW1.eq.11.or.KW1.eq.12)then
                   COEL = .TRUE.
                   SEPL = RC1/RL1
@@ -421,8 +421,8 @@
 *
       IF(using_METISSE.eq.1)THEN
          IF(cemergeflag.eq.1)THEN
-            if(MC1.lt.1d-10.and.
-     &         (KW1.eq.0.or.KW1.eq.1.or.KW1.eq.2).or.KW1.eq.7.or.
+            if((MC1.lt.1d-10.and.
+     &         KW1.eq.0.or.KW1.eq.1.or.KW1.eq.2).or.KW1.eq.7.or.
      &         KW1.eq.8.or.KW1.eq.10.or.KW1.eq.11.or.KW1.eq.12)then
                   COEL = .TRUE.
                   SEPL = RC1/RL1
