@@ -179,6 +179,18 @@
 * If cemergeflag is set, cause kstars without clear core-envelope
 * structure to merge automatically if they enter a CE
 *
+      IF(using_METISSE.eq.1)THEN
+         IF(cemergeflag.eq.1)THEN
+            if(MC1.lt.1d-10.and.
+     &         (KW1.eq.0.or.KW1.eq.1.or.KW1.eq.2).or.KW1.eq.7.or.
+     &         KW1.eq.8.or.KW1.eq.10.or.KW1.eq.11.or.KW1.eq.12)then
+                  COEL = .TRUE.
+                  SEPL = RC1/RL1
+                  binstate = 1
+                  CALL CONCATKSTARS(KW1, KW2, mergertype)
+            endif
+         ENDIF
+      ELSE
          IF(cemergeflag.eq.1)THEN
             if(KW1.eq.0.or.KW1.eq.1.or.KW1.eq.2.or.KW1.eq.7.or.
      &         KW1.eq.8.or.KW1.eq.10.or.KW1.eq.11.or.KW1.eq.12)then
@@ -188,6 +200,7 @@
                   CALL CONCATKSTARS(KW1, KW2, mergertype)
             endif
          ENDIF
+      ENDIF
 *
 * The helium core of a very massive star of type 4 may actually fill
 * its Roche lobe in a wider orbit with a very low-mass secondary.
@@ -406,6 +419,18 @@
 * If cemergeflag is set, cause kstars without clear core-envelope
 * structure to merge automatically if they enter a CE
 *
+      IF(using_METISSE.eq.1)THEN
+         IF(cemergeflag.eq.1)THEN
+            if(MC1.lt.1d-10.and.
+     &         (KW1.eq.0.or.KW1.eq.1.or.KW1.eq.2).or.KW1.eq.7.or.
+     &         KW1.eq.8.or.KW1.eq.10.or.KW1.eq.11.or.KW1.eq.12)then
+                  COEL = .TRUE.
+                  SEPL = RC1/RL1
+                  binstate = 1
+                  CALL CONCATKSTARS(KW1, KW2, mergertype)
+            endif
+         ENDIF
+      ELSE
          IF(cemergeflag.eq.1)THEN
             if(KW1.eq.0.or.KW1.eq.1.or.KW1.eq.2.or.KW1.eq.7.or.
      &         KW1.eq.8.or.KW1.eq.10.or.KW1.eq.11.or.KW1.eq.12)then
@@ -415,6 +440,7 @@
                   CALL CONCATKSTARS(KW1, KW2, mergertype)
             endif
          ENDIF
+      ENDIF
          IF(RC1/RL1.GE.RC2/RL2)THEN
             IF(RC1.GT.RL1*SEPF)THEN
                COEL = .TRUE.
