@@ -24,9 +24,9 @@ module evolve
 
   integer, parameter:: strlen = 256
   integer, parameter:: max_loop = 40000
-  integer, parameter:: num_bpp_cols = 52
-  integer, parameter:: num_bcm_cols = 52
-  integer, parameter:: num_kick_info_cols = 19
+  integer, parameter:: n_col_bpp = 52
+  integer, parameter:: n_col_bcm = 52
+  integer, parameter:: n_col_kick_info = 19
 
 ! flags & settings
   integer:: tflag,ifflag,remnantflag,wdflag,bhflag,windflag,qcflag
@@ -63,6 +63,11 @@ module evolve
   character(strlen):: path_to_tracks,path_to_he_tracks
   real(dp):: z_match_limit
   logical:: METISSE_verbose, bcm_err
+  integer, dimension(0:15,0:15) :: ktype
+
+  real(dp):: mc_he(2),mc_co(2)
+  real(dp), dimension(max_loop,n_col_bpp) :: bpp_array
+  real(dp), dimension(max_loop,n_col_bcm) :: bcm_array
 
 ! NOTE: It seems we cannot use module vars for the output
 ! arrays because these have the `save` keyword and will
@@ -71,14 +76,17 @@ module evolve
 !real(dp):: bcm(50000,52),bpp(1000,52)
 
 contains
+! star,mass,tb,ecc,z,tphysf,
+  ! dtp,mass0,rad,lumin,massc,radc,
+  ! menv,renv,ospin,B_0,bacc,tacc,epoch,tms,
+  ! bhspin,tphys,zpars,kick_info,
+  ! bpp_index_out,bcm_index_out
+  subroutine evolv2(kstar, mass, porb, ecc, z,tphysf,&
+    dtp, mass0, rad, lumin, massc, radc, menv, renv, ospin,&
+    B_0, bacc, tacc, epoch, tms, bhspin, tphys, zpars,&
+    kick_info, bpp_index_out, bcm_index_out)
 
-  subroutine evolv2(mass, kstar, porb, ecc, z, tphys, tphysf,&
-    dtp, mass0, rad, lumin, massc, radc, ospin, B_0,&
-    bacc, tacc, epoch, tms, bhspin, zpars,&
-    kick_info_array, bpp_array, bcm_array,&
-    bpp_index_out, bcm_index_out)
-
-! rename tn = porb
+! rename tn & tb = porb
     integer:: loop,iter,intpol,k,ip,j1,j2
     integer:: kstar1, kstar2
     integer:: kcomp1,kcomp2,formation(2)
@@ -93,9 +101,9 @@ contains
     real(dp):: mass1_bpp,mass2_bpp
     real(dp):: rad(2),rol(2),rol0(2),rdot(2),radc(2),renv(2),radx(2)
     real(dp):: lumin(2),k2str(2),q(2),dms(2),dmr(2),dmt(2)
-    real(dp):: dml,vorb2,vwind2,omv2,ivsqm,lacc,kick_info(2,19)
+    real(dp):: dml,vorb2,vwind2,omv2,ivsqm,lacc!kick_info(2,19)
     real(dp):: sep,dr,porb,dme,tdyn,taum,dm1,dm2,dmchk,qc,dt,pd,rlperi
-    real(dp):: m1ce,m2ce,tmsnew,dm22,mew,mch
+    real(dp):: m1ce,m2ce,tmsnew,dm22,mew
     real(dp):: ecc,ecc1,tc,tcirc,ttid,ecc2,omecc2,sqome2,sqome3,sqome5
     real(dp):: f1,f2,f3,f4,f5,f,raa2,raa6,eqspin,rg2,tcqr,gammadisc
     real(dp):: jspin(2),ospin(2),jorb,oorb,jspbru,ospbru
@@ -110,26 +118,29 @@ contains
     real(dp):: B(2),Bbot,omdot,b_mdot,b_mdot_lim,evolve_type
     real(dp):: ran3
     real(dp):: z,tm,tn,m0,mt,rm,lum,mc,rc,me,re,k2,age,dtm,dtr
-    real(dp):: mc_he(2),mc_co(2)
+    !real(dp):: mc_he(2),mc_co(2)
     real(dp):: tscls(20),lums(10),GB(10),zpars(20)
     real(dp):: zero,ngtv,ngtv2,mt2,rrl1,rrl2,mcx,teff1,teff2
     real(dp):: mass1i,mass2i,tbi,ecci
     real(dp):: rl,mlwind,vrotf,corerd,f_fac
     real(dp):: qc_fixed
     real(dp):: idum1, idum2, iy, ir(32)
-    integer, dimension(0:15,0:15) :: ktype
+    real(dp):: k3 = 0.21d0
+    real(dp):: acc1 = 3.920659d8
+    real(dp):: kw3 = 619.2d0
+    real(dp):: wsun = 9.46d7
+    real(dp):: wx = 9.46d8
+    real(dp):: mr23yr = 0.4311d0
 
-    real(dp), dimension(max_loop,num_bpp_cols), intent(out):: bpp_array
-    real(dp), dimension(max_loop,num_bcm_cols), intent(out):: bcm_array
-    real(dp), dimension(2,num_kick_info_cols), intent(out):: kick_info_array
     integer, intent(out) :: bpp_index_out, bcm_index_out
+    real(dp), dimension(2,n_col_kick_info), intent(out) :: kick_info
 
-    logical:: coel,com,prec,inttry,change,snova,sgl,rlof
+    logical:: coel,com,prec,inttry,change,snova,sgl,rlof,cntct
     logical:: supedd,novae,disk,inspiral
     logical:: iplot,isave
     EXTERNAL rl,mlwind,vrotf,corerd
     logical:: output
-    logical:: switchedCE,disrupt,finished
+    logical:: switchedCE,disrupt,just_disrupted,finished
     integer ierr
 
     ierr = 0
@@ -158,6 +169,8 @@ contains
     kmin = 1
     kmax = 2
     sgl = .false.
+    rlof = .false.
+    cntct = .false.
     mt2 = min(mass(1), mass(2))
     kst = 0
     iter = 0
@@ -213,8 +226,8 @@ contains
       rol(1) = 1.0d+10
       rol(2) = 1.0d+10
     else
-      porb = porb/yr_to_day
-      sep = au_to_rsun*(porb*porb*(mass(1)+mass(2)))**(1.d0/3.d0)
+      porb = porb/yeardy
+      sep = aursun*(porb*porb*(mass(1)+mass(2)))**(1.d0/3.d0)
       oorb = twopi/porb
       jorb = mass(1)*mass(2)/(mass(1)+mass(2))*&
         sqrt(1.d0-ecc*ecc)*sep*sep*oorb
@@ -308,7 +321,7 @@ contains
 
     ! evolve loop
     loop = 1
-    do while(.not.finished.and.loop<max_loop)
+    evolv_main: do while(.not.finished.and.loop<max_loop)
 
       iter = 0
       intpol = 0
@@ -332,7 +345,7 @@ contains
       kw2 = kstar(2)
 
       ! loop for single stars / stars which are not currently interacting
-      do while(.not.rlof)
+      evolv_detached: do while(.not.rlof)
         if (xi == 0) then
           ospin(1) = 1.d-10
           ospin(2) = 1.d-10
@@ -357,7 +370,8 @@ contains
               maxspinBH = 6.d0**(1.d0/2.d0) * Mbh_initial
               if (mass(3-k) < maxspinBH) then
                 etaBH = 1.d0-&
-                  (1.d0 - (mass(3-k)/(3.d0*Mbh_initial))**(2.d0))**(1.d0/2.d0)
+                  (1.d0 - (mass(3-k)/(3.d0*Mbh_initial))**(2.d0))&
+                  **(1.d0/2.d0)
               else
                 etaBH = 0.42
               endif
@@ -397,7 +411,8 @@ contains
               endif
               vwind2 = 2.d0*beta*acc1*mass(k)/rad(k)
               omv2 = (1.d0 + vorb2/vwind2)**(3.d0/2.d0)
-              dmt(3-k) = ivsqm*acc2*dmr(k)*((acc1*mass(3-k)/vwind2)**2)/&
+              dmt(3-k) = ivsqm*acc2*dmr(k)*&
+                ((acc1*mass(3-k)/vwind2)**2)/&
                 (2.d0*sep*sep*omv2)
               dmt(3-k) = min(dmt(3-k), 0.8d0*dmr(k))
 
@@ -414,7 +429,7 @@ contains
 
           ! Diagnostic for Symbiotic-type stars.
           if (neta > tiny .and. kstar(j2) < Massless_REM) then
-            lacc = yr_to_sec*mass(j2)*dmt(j2)/rad(j2)
+            lacc = yearsc*mass(j2)*dmt(j2)/rad(j2)
             lacc = lacc/lumin(j1)
           endif
 
@@ -426,7 +441,8 @@ contains
           djorb = ((dmr(1)+q(1)*dmt(1))*mass(2)*mass(2)+&
             (dmr(2)+q(2)*dmt(2))*mass(1)*mass(1))*&
             sep*sep*sqome2*oorb/(mass(1)+mass(2))
-          delet =  ecc*(dmt(1)*(0.5d0/mass(1) + 1.d0/(mass(1)+mass(2)))+&
+          delet =  ecc*(dmt(1)*&
+            (0.5d0/mass(1) + 1.d0/(mass(1)+mass(2)))+&
             dmt(2)*(0.5d0/mass(2) + 1.d0/(mass(1)+mass(2))))
 
           ! For very close systems include angular momentum loss owing to
@@ -509,7 +525,7 @@ contains
                 djspint(k) = djspint(k) + djmb
               endif
             else
-              if (ST_cr <= 0 .and. mass(k) > 0.35 .and. kstar(k) < HeWD .and.&
+              if (ST_cr <= 0 .and. mass(k) > 0.35 .and.kstar(k) < HeWD .and.&
                 menv(k)>0.d0) then
                 ! Ivanova & Taam (2002) method
                 if (ospin(k) <= wx) djmb = kw3*rad(k)**4.d0*&
@@ -856,7 +872,7 @@ contains
             djspint(k)*dt,jspin(k)
 
           ! Ensure that the star does not spin up beyond break-up.
-          ospbru = twopi*sqrt(mass(k)*au_to_rsun**3/rad(k)**3)
+          ospbru = twopi*sqrt(mass(k)*aursun**3/rad(k)**3)
           jspbru = (k2str(k)*(mass(k)-massc(k))*rad(k)*rad(k) +&
             k3*massc(k)*radc(k)*radc(k))*ospbru
           if(&
@@ -918,12 +934,16 @@ contains
           ecc1 = ecc1 - delet*dt
           ecc = MAX(ecc1,0.d0)
           if(ecc.lt.1.0d-10) ecc = 0.d0
+          if(ecc>=1.d0) then
+            just_disrupted = .true.
+            exit evolv_detached
+          endif
           !if(ecc.ge.1.d0) goto 135 ! TODO remove goto
 
           jorb = jorb - djorb*dt
           sep = (mass(1) + mass(2))*jorb*jorb/&
-            ((mass(1)*mass(2)*twopi)**2*au_to_rsun**3*(1.d0-ecc*ecc))
-          porb = (sep/au_to_rsun)*sqrt(sep/(au_to_rsun*(mass(1)+mass(2))))
+            ((mass(1)*mass(2)*twopi)**2*aursun**3*(1.d0-ecc*ecc))
+          porb = (sep/aursun)*sqrt(sep/(aursun*(mass(1)+mass(2))))
           oorb = twopi/porb
         endif
 
@@ -950,11 +970,11 @@ contains
         mass00(k) = m0
         ! Masses over 100Msun should probably not be trusted in the
         ! evolution formulae.
-        if(mt>100.d0)then
-          write(99,*)' MASS EXCEEDED ',mass1i,mass2i,tbi,ecci,mt,&
-            tphysf,id1_pass,id2_pass
-          !goto 140
-        endif
+        !if(mt>100.d0)then
+        !  write(99,*)' MASS EXCEEDED ',mass1i,mass2i,tbi,ecci,mt,&
+        !    tphysf,id1_pass,id2_pass
+        !  goto 140
+        !endif
 
         call star(kw,m0,mt,tm,tn,tscls,lums,GB,zpars,dtm,k)
         call hrdiag(m0,age,mt,tm,tn,tscls,lums,GB,zpars,&
@@ -1144,15 +1164,19 @@ contains
               mass(3-k) = 0.d0
               coel = .true.
               binstate = 1
+              just_disrupted = .true.
+              exit evolv_detached
               !goto 135
             endif
             if(ecc.gt.1.d0)then
               kstar(k) = kw
               mass(k) = mt
               epoch(k) = tphys - age
+              just_disrupted = .true.
+              exit evolv_detached
               !goto 135
             endif
-            porb = (sep/au_to_rsun)*SQRT(sep/(au_to_rsun*(mt+mass(3-k))))
+            porb = (sep/aursun)*SQRT(sep/(aursun*(mt+mass(3-k))))
             oorb = twopi/porb
           endif
           merger = -1.d0
@@ -1165,6 +1189,8 @@ contains
           dtmi(k) = 0.01d0
           if(kw==Massless_REM)then
             kstar(k) = kw
+            just_disrupted = .true.
+            exit evolv_detached
             !goto 135
           endif
           mass0(k) = m0
@@ -1203,7 +1229,7 @@ contains
                 s = 0.7d0*s - 0.6d0
               enddo
 
-              ospin(k) = (twopi*yr_to_sec)/(10.d0**s)
+              ospin(k) = (twopi*yearsc)/(10.d0**s)
               s = -1.d0
               u1 = 1.d0
               do while (s<11.5d0.or.s>=13.8d0)
@@ -1230,7 +1256,7 @@ contains
                   ! s = 0.7d0*s - 0.6d0
                   s = 0.5d0*s - 2.25d0
                 enddo
-                ospin(k) = (twopi*yr_to_sec)/(10.d0**s)!have commented this out to keeps same spin
+                ospin(k) = (twopi*yearsc)/(10.d0**s)!have commented this out to keeps same spin
                 s = 1.d0
                 do while(s<8.d0.or.s>8.778d0)
                   u1 = ran3(idum1)
@@ -1349,6 +1375,7 @@ contains
             formation(1),formation(2),binstate,mergertype,z,'bpp')
           if(snova)then
             dtm = 0.d0
+            cycle evolv_main
             !goto 4 !AAAAh
           endif
         endif
@@ -1421,108 +1448,121 @@ contains
           if(output) write(*,*)'nxt t, after:',tphys,dtm,dtmi(1),dtmi(2)
           if(iter.eq.0) dtm0 = dtm
         endif
-        !if(sgl) goto 98
 
-        ! Set j1 to the donor - the primary
-        ! and j2 to the accretor - the secondary.
-        if(intpol==0)then
-          if(rad(1)/rol(1)>=rad(2)/rol(2))then
-            j1 = 1
-            j2 = 2
-          else
-            j1 = 2
-            j2 = 1
-          endif
-        endif
+        if(.not.sgl)then
+          !if(sgl) goto 98 ! skip this step for singles
 
-        ! Test whether Roche lobe overflow has begun.
-        if(rad(j1)>rol(j1))then
-          if (using_METISSE==1 .and. (rad(j1)<1.05d0*rol(j1))) then
-            !if(tphys>=tphysf) call dummy() !goto 140 ! TODO END loop
-            rlof = .true.
-            cycle
-            !goto 7
-          endif
-
-          ! Interpolate back until the primary is just filling its Roche lobe.
-          if(rad(j1)>=1.002d0*rol(j1))then
-            if(intpol==0) tphys00 = tphys
-            intpol = intpol + 1
-            if(iter==0.or.inttry)then
-              rlof = .true.
-              cycle
-            endif
-            !call dummy() !goto 7 !
-            !if(inttry) call dummy() !goto 7
-            if(intpol.ge.100)then
-              WRITE(99,*)' INTPOL EXCEEDED ',mass1i,mass2i,tbi,ecci
-              !goto 140 ! TODO
-            endif
-            dr = rad(j1) - 1.001d0*rol(j1)
-            if(ABS(rdot(j1))<tiny.or.prec)then
-              rlof = .true.
-              cycle !goto 7
-            endif
-            dtm = -dr/ABS(rdot(j1))
-            if(ABS(tphys0-tphys)>tiny) dtm = MAX(dtm,tphys0-tphys)
-            if(kstar(1)/=kw1)then
-              kstar(1) = kw1
-              mass0(1) = mass00(1)
-              epoch(1) = tphys - aj0(1)
-            endif
-            if(kstar(2)/=kw2)then
-              kstar(2) = kw2
-              mass0(2) = mass00(2)
-              epoch(2) = tphys - aj0(2)
-            endif
-            change = .false.
-          else
-            ! Enter Roche lobe overflow
-            if(tphys>=tphysf) call dummy() !goto 140
-            rlof = .true.
-            !goto 7
-          endif
-        else
-          ! Check if already interpolating.
-          if(intpol>0)then
-            intpol = intpol + 1
-            if(intpol>=80)then
-              inttry = .true.
-            endif
-            if(ABS(rdot(j1))<tiny)then
-              prec = .true.
-              dtm = 1.0d-07*tphys
+          ! Set j1 to the donor - the primary
+          ! and j2 to the accretor - the secondary.
+          if(intpol==0)then
+            if(rad(1)/rol(1)>=rad(2)/rol(2))then
+              j1 = 1
+              j2 = 2
             else
-              dr = rad(j1) - 1.001d0*rol(j1)
-              dtm = -dr/ABS(rdot(j1))
-            endif
-            if((tphys+dtm)>=tphys00)then
-              ! If this occurs then most likely the star is a high mass type 4
-              ! where the radius can change very sharply or possibly there is a
-              ! discontinuity in the radius as a function of time and HRDIAG
-              ! needs to be checked!
-              dtm = 0.5d0*(tphys00 - tphys0)
-              dtm = MAX(dtm,1.0d-10)
-              prec = .true.
-            endif
-            tphys0 = tphys
-            if(using_METISSE==1 .and. (dtm<=1.0d-10)) then
-              dtm = max(ABS(dtm),dtmi(j1))
+              j1 = 2
+              j2 = 1
             endif
           endif
+
+          ! Test whether Roche lobe overflow has begun.
+          if(rad(j1)>rol(j1))then
+            if (using_METISSE==1 .and. (rad(j1)<1.05d0*rol(j1))) then
+              if(tphys>=tphysf)then !if(tphys>=tphysf) call dummy() !goto 140 ! TODO END loop
+                finished=.true.
+                exit evolv_detached
+              endif
+              rlof = .true.
+              exit evolv_detached
+              !goto 7
+            endif
+
+            ! Interpolate back until the primary is just filling its Roche lobe.
+            if(rad(j1)>=1.002d0*rol(j1))then
+              if(intpol==0) tphys00 = tphys
+              intpol = intpol + 1
+              if(iter==0.or.inttry)then
+                rlof = .true.
+                exit evolv_detached
+              endif
+              !call dummy() !goto 7 OR if(inttry) call dummy() !goto 7
+              if(intpol.ge.100)then
+                WRITE(99,*)' INTPOL EXCEEDED ',mass1i,mass2i,tbi,ecci
+                finished=.true.
+                exit evolv_detached
+                !goto 140 ! TODO
+              endif
+              dr = rad(j1) - 1.001d0*rol(j1)
+              if(ABS(rdot(j1))<tiny.or.prec)then
+                rlof = .true.
+                exit evolv_detached !goto 7
+              endif
+              dtm = -dr/ABS(rdot(j1))
+              if(ABS(tphys0-tphys)>tiny) dtm = MAX(dtm,tphys0-tphys)
+              if(kstar(1)/=kw1)then
+                kstar(1) = kw1
+                mass0(1) = mass00(1)
+                epoch(1) = tphys - aj0(1)
+              endif
+              if(kstar(2)/=kw2)then
+                kstar(2) = kw2
+                mass0(2) = mass00(2)
+                epoch(2) = tphys - aj0(2)
+              endif
+              change = .false.
+            else
+              ! Enter Roche lobe overflow
+              if(tphys>=tphysf) then ! goto 140
+                finished=.true.
+                exit evolv_detached
+              endif
+              rlof = .true.
+              exit evolv_detached
+              !goto 7
+            endif
+          else
+            ! Check if already interpolating.
+            if(intpol>0)then
+              intpol = intpol + 1
+              if(intpol>=80)then
+                inttry = .true.
+              endif
+              if(ABS(rdot(j1))<tiny)then
+                prec = .true.
+                dtm = 1.0d-07*tphys
+              else
+                dr = rad(j1) - 1.001d0*rol(j1)
+                dtm = -dr/ABS(rdot(j1))
+              endif
+              if((tphys+dtm)>=tphys00)then
+                ! If this occurs then most likely the star is a high mass type 4
+                ! where the radius can change very sharply or possibly there is a
+                ! discontinuity in the radius as a function of time and HRDIAG
+                ! needs to be checked!
+                dtm = 0.5d0*(tphys00 - tphys0)
+                dtm = MAX(dtm,1.0d-10)
+                prec = .true.
+              endif
+              tphys0 = tphys
+              if(using_METISSE==1 .and. (dtm<=1.0d-10)) then
+                dtm = max(ABS(dtm),dtmi(j1))
+              endif
+            endif
+          endif
+
+          ! Check for collision at periastron.
+          pd = sep*(1.d0 - ecc)
+          if(pd<(rad(1)+rad(2)).and.intpol==0)then
+            ! stellar merger ! TODO
+            cntct = .true.
+            exit evolv_detached
+          endif!goto 130
         endif
 
-        ! Check for collision at periastron.
-        pd = sep*(1.d0 - ecc)
-        if(pd<(rad(1)+rad(2)).and.intpol==0)then
-          ! stellar merger ! TODO
-          cycle
-        endif!TODO !goto 130
         ! Go back for the next step or interpolation.
         if(tphys>=tphysf.and.intpol==0) then
           finished = .true.
-          cycle
-        endif!TODO !goto 140
+          exit evolv_detached
+        endif!goto 140
 
         if(change)then
           change = .false.
@@ -1572,13 +1612,15 @@ contains
         if(iter>loop)then
           WRITE(99,*)' MAXIMUM ITER EXCEEDED ',mass1i,mass2i,tbi,ecci,&
             tphysf,id1_pass,id2_pass
-          !TODO !goto 140
+          finished=.true.
+          exit evolv_detached
+          !goto 140
         endif
 
-      enddo
+      enddo evolv_detached
 
       ! loop for while Roche-lobe overflow is occurring
-      do while(rlof)
+      evolv_rlof: do while(rlof)
         ! Set the nuclear timescale in years and slow-down factor.
         km0 = dtm0*1.0d+03/porb
         if(km0<tiny) km0 = 0.5d0
@@ -1586,8 +1628,12 @@ contains
         ! Check for collision at periastron for a stable RLOF
         if(smt_periastron_check==1)then
           pd = sep*(1.d0 - ecc)
-          if(pd<(rad(1)+rad(2))) continue ! stellar merger !goto 130
+          if(pd<(rad(1)+rad(2))) then
+            cntct = .true.
+            exit evolv_rlof
+          endif! stellar merger !goto 130
         endif
+
         ! Force co-rotation of primary and orbit to ensure that the tides do not
         ! lead to unstable Roche (not currently used).
         !
@@ -1597,7 +1643,7 @@ contains
         !    &                k3*radc(j1)*radc(j1)*massc(j1))*ospin(j1)
         sep = sep*(1-ecc)
         ecc = 0.d0
-        porb = (sep/au_to_rsun)*SQRT(sep/(au_to_rsun*(mass(1)+mass(2))))
+        porb = (sep/aursun)*SQRT(sep/(aursun*(mass(1)+mass(2))))
         oorb = twopi/porb
         jorb = (mass(1)*mass(2)/(mass(1)+mass(2)))*&
           sqrt(1.d0-ecc*ecc)*sep*sep*oorb
@@ -1890,8 +1936,11 @@ contains
             kstar(j1) = kstar(j2)
             kstar(j2) = 15
           endif
-          !             goto 135 TODO -- collision
-          ! *KB added RRLO_1 flag to send RRLO_1 > 10 into CE for post-MS binaries
+
+          just_disrupted=.true.
+          exit evolv_rlof
+          ! goto 135 -- collision
+          ! KB added RRLO_1 flag to send RRLO_1 > 10 into CE for post-MS binaries
 
         elseif(&
           ((kstar(j1).eq.3.or.kstar(j1).eq.5.or.kstar(j1).eq.6.or.&
@@ -2101,7 +2150,7 @@ contains
                 sep = -1d0
                 oorb = -1d0
               else
-                porb = (sep/au_to_rsun)*SQRT(sep/(au_to_rsun*(mt+mass(3-k))))
+                porb = (sep/aursun)*SQRT(sep/(aursun*(mt+mass(3-k))))
                 oorb = twopi/porb
               endif
             endif
@@ -2157,7 +2206,9 @@ contains
           epoch(j1) = tphys - aj(j1)
           if(coel)then
             com = .true.
-            !goto 135 TODO merger
+            just_disrupted=.true.
+            exit evolv_rlof
+            !goto 135 merger
           endif
           epoch(j2) = tphys - aj(j2)
           if(ecc.gt.1.d0)then
@@ -2169,7 +2220,9 @@ contains
               rc = corerd(kstar(2),mass(2),mass(2),zpars(2))
               ospin(2) = jspin(2)/(k3*rc*rc*mass(2))
             endif
-            !goto 135 ! TODO disrupt
+            just_disrupted = .true.
+            exit evolv_rlof
+            !goto 135 disrupt
           endif
 
           ! Next step should be made without changing the time.
@@ -2178,7 +2231,7 @@ contains
           dm22 = dm2
           dtm = 0.d0
           ! Reset orbital parameters as separation may have changed.
-          porb = (sep/au_to_rsun)*SQRT(sep/(au_to_rsun*(mass(1)+mass(2))))
+          porb = (sep/aursun)*SQRT(sep/(aursun*(mass(1)+mass(2))))
           oorb = twopi/porb
 
         elseif(kstar(j1).ge.10.and.kstar(j1).le.12.and.q(j1).gt.qc)then
@@ -2238,7 +2291,9 @@ contains
           endif
           coel = .true.
           binstate = 1
-          !goto 135 ! TODO ! type 1a supernova
+          just_disrupted = .true.
+          exit evolv_rlof
+          !goto 135 type 1a supernova
         elseif(kstar(j1).eq.13)then
           ! Gamma ray burster?
           CALL CONCATKSTARS(kstar(j1), kstar(j2), mergertype)
@@ -2250,8 +2305,9 @@ contains
           kstar(j2) = 14
           coel = .true.
           binstate = 1
-
-          ! goto 135 !
+          just_disrupted = .true.
+          exit evolv_rlof
+          ! goto 135
         elseif(kstar(j1).eq.14)then
           ! Both stars are black holes.  Let them merge quietly.
           CALL CONCATKSTARS(kstar(j1), kstar(j2), mergertype)
@@ -2262,7 +2318,8 @@ contains
           mass(j2) = mass(j2) + dm2
           coel = .true.
           binstate = 1
-
+          just_disrupted = .true.
+          exit evolv_rlof
           !goto 135
         else
           ! * Mass transfer in one Kepler orbit.
@@ -2335,6 +2392,8 @@ contains
             epoch(1) = tphys - aj(1)
             coel = .true.
             binstate = 1
+            just_disrupted = .true.
+            exit evolv_rlof
             ! goto 135 ! TODO merger
           endif
           if(kstar(j1).gt.9)then
@@ -2576,7 +2635,9 @@ contains
               mass(j1) = mass(j1) - km*(dm1 + dms(j1))
               mass(j2) = 0.d0
               kstar(j2) = 15
-              !goto 135 ! TODO star destroyed
+              just_disrupted = .true.
+              exit evolv_rlof
+              !goto 135 star destroyed
             elseif(kstar(j1).le.10.and.kst.ge.11)then
               ! CO and ONeWDs accrete helium-rich material until the accumulated
               ! material exceeds a mass of 0.15 when it ignites. For a COWD with
@@ -2589,7 +2650,9 @@ contains
                   mass(j1) = mass(j1) - km*(dm1 + dms(j1))
                   mass(j2) = 0.d0
                   kstar(j2) = 15
-                  !goto 135 ! TODO star destroyed
+                  just_disrupted = .true.
+                  exit evolv_rlof
+                  !goto 135 star destroyed
                 endif
                 mass0(j2) = mt2
               endif
@@ -2606,7 +2669,9 @@ contains
               mass(j1) = mass(j1) - dm1 - km*dms(j1)
               mass(j2) = 0.d0
               kstar(j2) = 15
-              !goto 135 ! TODO star destroyed
+              just_disrupted = .true.
+              exit evolv_rlof
+              !goto 135 star destroyed
             endif
           endif
 
@@ -2799,7 +2864,7 @@ contains
             ! Alter spin of the degenerate secondary by assuming that material
             ! falls onto the star from the inner edge of a Keplerian accretion
             ! disk and that the system is in a steady state.
-            djt = dm2*twopi*au_to_rsun*SQRT(au_to_rsun*mass(j2)*radx(j2))
+            djt = dm2*twopi*aursun*SQRT(aursun*mass(j2)*radx(j2))
             djspint(j2) = djspint(j2) - djt
             djorb = djorb + djt
           else
@@ -2808,7 +2873,7 @@ contains
             ! using the radius of the disk (see Ulrich & Burger) that would
             ! have formed if allowed.
             rdisk = 1.7d0*rmin
-            djt = dm2*twopi*au_to_rsun*SQRT(au_to_rsun*mass(j2)*rdisk)
+            djt = dm2*twopi*aursun*SQRT(aursun*mass(j2)*rdisk)
             djspint(j2) = djspint(j2) - djt
             djorb = djorb + djt
           endif
@@ -2936,7 +3001,7 @@ contains
             ! Ensure that the star does not spin up beyond break-up, and transfer
             ! the excess angular momentum back to the orbit.
 
-            ospbru = twopi*SQRT(mass(k)*au_to_rsun**3/radx(k)**3)
+            ospbru = twopi*SQRT(mass(k)*aursun**3/radx(k)**3)
             jspbru = (k2str(k)*(mass(k)-massc(k))*radx(k)*radx(k) +&
               k3*massc(k)*radc(k)*radc(k))*ospbru
             if(jspin(k).gt.jspbru)then
@@ -2975,9 +3040,12 @@ contains
           ecc = MAX(ecc,0.d0)
           if(ecc.lt.1.0d-10) ecc = 0.d0
 
-          if(ecc.ge.1.d0) continue !goto 135 ! TODO binary disrupted
+          if(ecc.ge.1.d0) then
+            just_disrupted=.true.
+            exit evolv_rlof
+          endif !goto 135 binary disrupted
 
-          ! * Ensure that Jorb does not become negative which could happen if the
+          ! Ensure that Jorb does not become negative which could happen if the
           ! primary overfills its Roche lobe initially. In this case we simply
           ! allow contact to occur.
 
@@ -2988,8 +3056,8 @@ contains
           if((jorb-djorb).lt.1.d0) inspiral=.true.
           jorb = MAX(1.d0,jorb - djorb)
           sep = (mass(1) + mass(2))*jorb*jorb/&
-            ((mass(1)*mass(2)*twopi)**2*au_to_rsun**3*(1.d0-ecc*ecc))
-          porb = (sep/au_to_rsun)*SQRT(sep/(au_to_rsun*(mass(1)+mass(2))))
+            ((mass(1)*mass(2)*twopi)**2*aursun**3*(1.d0-ecc*ecc))
+          porb = (sep/aursun)*SQRT(sep/(aursun*(mass(1)+mass(2))))
           oorb = twopi/porb
 
         endif
@@ -3032,11 +3100,11 @@ contains
 
           ! Masses over 100Msun should probably not be trusted in the
           ! evolution formulae.
-          if(mt.gt.100.d0)then
-            !WRITE(99,*)' MASS EXCEEDED ',mass1i,mass2i,tbi,ecci,mt,&
-            !tphysf,id1_pass,id2_pass
-            !goto 140
-          endif
+          !if(mt.gt.100.d0)then
+          !WRITE(99,*)' MASS EXCEEDED ',mass1i,mass2i,tbi,ecci,mt,&
+          !tphysf,id1_pass,id2_pass
+          !goto 140
+          !endif
           kw = kstar(k)
           CALL star(kw,m0,mt,tm,tn,tscls,lums,GB,zpars,dtm,k)
           CALL hrdiag(m0,age,mt,tm,tn,tscls,lums,GB,zpars,&
@@ -3044,7 +3112,10 @@ contains
 
           if (smt_periastron_check.eq.1) then
             pd = sep*(1.d0 - ecc)
-            if(pd.lt.(rad(1)+rad(2))) continue !goto 130 ! TODO merger
+            if(pd.lt.(rad(1)+rad(2))) then
+              cntct = .true.
+              exit evolv_rlof
+            endif!goto 130 merger
           endif
 
           ! Check for a supernova and correct the semi-major axis if so.
@@ -3145,9 +3216,11 @@ contains
               kstar(k) = kw
               mass(k) = mt
               epoch(k) = tphys - age
-              !goto 135 ! TODO binary disruption
+              just_disrupted = .true.
+              exit evolv_rlof
+              !goto 135 binary disruption
             endif
-            porb = (sep/au_to_rsun)*SQRT(sep/(au_to_rsun*(mt+mass(3-k))))
+            porb = (sep/aursun)*SQRT(sep/(aursun*(mt+mass(3-k))))
             oorb = twopi/porb
           endif
 
@@ -3159,7 +3232,9 @@ contains
             mass(k) = mt
             if(kw.eq.15)then
               kstar(k) = kw
-              !goto 135 ! TODO massless remnant
+              just_disrupted = .true.
+              exit evolv_rlof
+              !goto 135 massless remnant
             endif
             mass0(k) = m0
             epoch(k) = tphys - age
@@ -3269,7 +3344,10 @@ contains
           ! & mass(2),rad(1),rad(2),ospin(1),ospin(2),b01_bcm,b02_bcm,jspin(1)
         endif
 
-        if(tphys.ge.tphysf.and..not.inspiral) continue ! goto 140 ! todo time limit
+        if(tphys.ge.tphysf.and..not.inspiral) then
+          finished = .true.
+          exit evolv_rlof
+        endif! goto 140 time limit
 
         if(change)then
           change = .false.
@@ -3309,12 +3387,786 @@ contains
         ! Test whether the primary still fills its Roche lobe.
         if(rad(j1).gt.rol(j1).and..not.snova)then
 
+          ! Test for a contact system
+          if(rad(j2).gt.rol(j2))then
+            cntct = .true.
+            exit evolv_rlof
+            !goto 130 ! TODO
+          endif
+          iter = iter+1
+
+        else
+          ! Roche lobe overflow has ended
+          evolve_type = 4.0
+          rrl1 = rad(1)/rol(1)
+          rrl2 = rad(2)/rol(2)
+          teff1 = 1000.d0*((1130.d0*lumin(1)/&
+            (rad(1)**2.d0))**(1.d0/4.d0))
+          teff2 = 1000.d0*((1130.d0*lumin(2)/&
+            (rad(2)**2.d0))**(1.d0/4.d0))
+
+          if(B_0(1).eq.0.d0)then !PK.
+            b01_bcm = 0.d0
+          elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+            b01_bcm = B_0(1)
+          else
+            b01_bcm = B(1)
+          endif
+
+          if(B_0(2).eq.0.d0)then
+            b02_bcm = 0.d0
+          elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+            b02_bcm = B_0(2)
+          else
+            b02_bcm = B(2)
+          endif
+
+          CALL writetab(bpp_ind,tphys,evolve_type,mass(1),mass(2),&
+            kstar(1),kstar(2),sep,porb,ecc,rrl1,rrl2,aj(1),aj(2),&
+            tms(1),tms(2),mc_he(1),mc_he(2),mc_co(1),mc_co(2),&
+            rad(1),rad(2),mass0(1),mass0(2),lumin(1),lumin(2),&
+            teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+            renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,&
+            bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),epoch(2),&
+            bhspin(1),bhspin(2),deltam1_bcm,deltam2_bcm,&
+            formation(1),formation(2),binstate,mergertype,z,'bpp')
+
+          dtm = 0.d0
+          rlof = .false.
+          !goto 4
+        endif
+      enddo evolv_rlof
+
+      evolv_contact: if(cntct)then
+        ! Contact system
+        coel = .true.
+        binstate = 1
+        CALL CONCATKSTARS(kstar(j1), kstar(j2), mergertype)
+
+        ! If *1 or *2 is giant-like this will be common-envelope evolution.
+        m1ce = mass(j1)
+        m2ce = mass(j2)
+        rrl1 = MIN(999.999d0,rad(1)/rol(1))
+        rrl2 = MIN(999.999d0,rad(2)/rol(2))
+
+        evolve_type = 5.0
+        teff1 = 1000.d0*((1130.d0*lumin(1)/&
+          (rad(1)**2.d0))**(1.d0/4.d0))
+        teff2 = 1000.d0*((1130.d0*lumin(2)/&
+          (rad(2)**2.d0))**(1.d0/4.d0))
+        if(B_0(1).eq.0.d0)then !PK.
+          b01_bcm = 0.d0
+        elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+          b01_bcm = B_0(1)
+        else
+          b01_bcm = B(1)
+        endif
+        if(B_0(2).eq.0.d0)then
+          b02_bcm = 0.d0
+        elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+          b02_bcm = B_0(2)
+        else
+          b02_bcm = B(2)
         endif
 
+        CALL writetab(bpp_ind,tphys,evolve_type,mass(1),mass(2),&
+          kstar(1),kstar(2),sep,porb,ecc,rrl1,rrl2,aj(1),aj(2),&
+          tms(1),tms(2),mc_he(1),mc_he(2),mc_co(1),mc_co(2),&
+          rad(1),rad(2),mass0(1),mass0(2),lumin(1),lumin(2),&
+          teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+          renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,&
+          bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),epoch(2),&
+          bhspin(1),bhspin(2),deltam1_bcm,deltam2_bcm,&
+          formation(1),formation(2),binstate,mergertype,z,'bpp')
+        kcomp1 = kstar(j1)
+        kcomp2 = kstar(j2)
 
-      enddo
+        if(output) write(*,*)'coal r/rl1 & r/rl2 > 0',tphys,kcomp1,kcomp2,&
+          m1ce,m2ce
 
-    enddo
+        if(kstar(j1).ge.2.and.kstar(j1).le.9.and.kstar(j1).ne.7)then
+
+          if(j1.eq.2)then
+            switchedCE = .true.
+          else
+            switchedCE = .false.
+          endif
+
+          evolve_type = 7.d0
+          teff1 = 1000.d0*((1130.d0*lumin(1)/&
+            (rad(1)**2.d0))**(1.d0/4.d0))
+          teff2 = 1000.d0*((1130.d0*lumin(2)/&
+            (rad(2)**2.d0))**(1.d0/4.d0))
+          if(B_0(1).eq.0.d0)then !PK.
+            b01_bcm = 0.d0
+          elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+            b01_bcm = B_0(1)
+          else
+            b01_bcm = B(1)
+          endif
+          if(B_0(2).eq.0.d0)then
+            b02_bcm = 0.d0
+          elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+            b02_bcm = B_0(2)
+          else
+            b02_bcm = B(2)
+          endif
+
+          CALL writetab(bpp_ind,tphys,evolve_type,mass(1),mass(2),&
+            kstar(1),kstar(2),sep,porb,ecc,rrl1,rrl2,aj(1),aj(2),&
+            tms(1),tms(2),mc_he(1),mc_he(2),mc_co(1),mc_co(2),&
+            rad(1),rad(2),mass0(1),mass0(2),lumin(1),lumin(2),&
+            teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+            renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,&
+            bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),epoch(2),&
+            bhspin(1),bhspin(2),deltam1_bcm,deltam2_bcm,&
+            formation(1),formation(2),binstate,mergertype,z,'bpp')
+          CALL comenv(mass0(j1),mass(j1),massc(j1),aj(j1),jspin(j1),&
+            kstar(j1),mass0(j2),mass(j2),massc(j2),aj(j2),jspin(j2),&
+            kstar(j2),zpars,ecc,sep,jorb,coel,j1,j2,vk,kick_info,&
+            formation(j1),formation(j2),sigmahold,&
+            bhspin(j1),bhspin(j2),binstate,mergertype,bpp_ind,&
+            tphys,switchedCE,rad,tms,evolve_type,disrupt,lumin,&
+            B_0,bacc,tacc,epoch,menv,renv,deltam1_bcm,deltam2_bcm,&
+            dtm)
+
+          if(output) write(*,*)'coal1:',tphys,kstar(j1),kstar(j2),coel,&
+            mass(j1),mass(j2)
+
+          if(j1.eq.2.and.kcomp2.eq.13.and.kstar(j2).eq.15.and.&
+            kstar(j1).eq.13)then !PK.
+            ! In CE the NS got switched around. Do same to formation.
+            formation(j1) = formation(j2)
+          endif
+          if(j1.eq.1.and.kcomp2.eq.13.and.kstar(j2).eq.15.and.&
+            kstar(j1).eq.13)then !PK.
+            ! In CE the NS got switched around. Do same to formation.
+            formation(j1) = formation(j2)
+          endif
+          com = .true.
+
+          if(com.and..not.coel.and..not.disrupt)then
+            ! if it went through common envelope
+            ! did not disrupt (from one of the objects going SN)
+            ! and did not merge in common envelope
+            ! then system is still in binary
+            binstate = 0
+            mergertype = -1
+          elseif(com.and..not.coel.and.disrupt)then
+            ! if it went through common envelope
+            ! and did disrupt (from one of the objects going SN)
+            ! and did not merge in common envelope
+            ! then system should be marked as disrupted
+            binstate = 2
+            mergertype = -1
+          endif
+
+          ! else it merged in the common envelope
+          if(binstate.eq.1.d0)then
+            sep = 0.d0
+            porb = 0.d0
+          elseif(binstate.eq.2.d0)then
+            sep = -1.d0
+            porb = -1.d0
+          endif
+
+        elseif(kstar(j2).ge.2.and.kstar(j2).le.9.and.&
+          kstar(j2).ne.7)then
+          if(j1.eq.1)then
+            switchedCE = .true.
+          else
+            switchedCE = .false.
+          endif
+          evolve_type = 7.d0
+          teff1 = 1000.d0*((1130.d0*lumin(1)/&
+            (rad(1)**2.d0))**(1.d0/4.d0))
+          teff2 = 1000.d0*((1130.d0*lumin(2)/&
+            (rad(2)**2.d0))**(1.d0/4.d0))
+
+          if(B_0(1).eq.0.d0)then !PK.
+            b01_bcm = 0.d0
+          elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+            b01_bcm = B_0(1)
+          else
+            b01_bcm = B(1)
+          endif
+          if(B_0(2).eq.0.d0)then
+            b02_bcm = 0.d0
+          elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+            b02_bcm = B_0(2)
+          else
+            b02_bcm = B(2)
+          endif
+
+          CALL writetab(bpp_ind,tphys,evolve_type,mass(1),mass(2),&
+            kstar(1),kstar(2),sep,porb,ecc,rrl1,rrl2,aj(1),aj(2),&
+            tms(1),tms(2),mc_he(1),mc_he(2),mc_co(1),mc_co(2),&
+            rad(1),rad(2),mass0(1),mass0(2),lumin(1),lumin(2),&
+            teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+            renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,&
+            bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),epoch(2),&
+            bhspin(1),bhspin(2),deltam1_bcm,deltam2_bcm,&
+            formation(1),formation(2),binstate,mergertype,z,'bpp')
+          CALL comenv(mass0(j2),mass(j2),massc(j2),aj(j2),jspin(j2),&
+            kstar(j2),mass0(j1),mass(j1),massc(j1),aj(j1),&
+            jspin(j1),kstar(j1),zpars,ecc,sep,jorb,coel,j2,j1,&
+            vk,kick_info,formation(j2),formation(j1),sigmahold,&
+            bhspin(j2),bhspin(j1),binstate,mergertype,bpp_ind,&
+            tphys,switchedCE,rad,tms,evolve_type,disrupt,lumin,&
+            B_0,bacc,tacc,epoch,menv,renv,deltam1_bcm,&
+            deltam2_bcm,dtm)
+          if(output) write(*,*)'coal2:',tphys,kstar(j1),kstar(j2),&
+            coel,mass(j1),mass(j2)
+
+          if(j2.eq.2.and.kcomp1.eq.13.and.kstar(j1).eq.&
+            15.and.kstar(j2).eq.13)then !PK.
+            ! In CE the NS got switched around. Do same to formation.
+            formation(j2) = formation(j1)
+          endif
+          if(j2.eq.1.and.kcomp1.eq.13.and.kstar(j1).eq.15.and.&
+            kstar(j2).eq.13)then !PK.
+            ! In CE the NS got switched around. Do same to formation.
+            formation(j2) = formation(j1)
+          endif
+
+          com = .true.
+          if(com.and..not.coel.and..not.disrupt)then
+            ! if it went through common envelope
+            ! did not disrupt (from one of the objects going SN)
+            ! and did not merge in common envelope
+            ! then system is still in binary
+            binstate = 0
+            mergertype = -1
+          elseif(com.and..not.coel.and.disrupt)then
+            ! if it went through common envelope
+            ! and did disrupt (from one of the objects going SN)
+            ! and did not merge in common envelope
+            ! then system should be marked as disrupted
+            binstate = 2
+            mergertype = -1
+          endif
+          ! else it merged in the common envelope
+          if(binstate.eq.1.d0)then
+            sep = 0.d0
+            porb = 0.d0
+          elseif(binstate.eq.2.d0)then
+            sep = -1.d0
+            porb = -1.d0
+          endif
+
+        else
+          CALL mix(mass0,mass,aj,kstar,zpars,bhspin,dtm)
+        endif
+
+        if(com)then
+          evolve_type = 8.0
+          mass1_bpp = mass(1)
+          mass2_bpp = mass(2)
+          ! TW: I commented this out, don't give massless remnants a mass
+          !         if(kstar(1).eq.15) mass1_bpp = mass0(1)
+          !         if(kstar(2).eq.15) mass2_bpp = mass0(2)
+          rrl1 = MIN(rrl1,0.99d0)
+          rrl2 = MIN(rrl2,0.99d0)
+          teff1 = 1000.d0*((1130.d0*lumin(1)/&
+            (rad(1)**2.d0))**(1.d0/4.d0))
+          teff2 = 1000.d0*((1130.d0*lumin(2)/&
+            (rad(2)**2.d0))**(1.d0/4.d0))
+          if(B_0(1).eq.0.d0)then !PK.
+            b01_bcm = 0.d0
+          elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+            b01_bcm = B_0(1)
+          else
+            b01_bcm = B(1)
+          endif
+          if(B_0(2).eq.0.d0)then
+            b02_bcm = 0.d0
+          elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+            b02_bcm = B_0(2)
+          else
+            b02_bcm = B(2)
+          endif
+
+
+          CALL writetab(bpp_ind,tphys,evolve_type,&
+            mass1_bpp,mass2_bpp,kstar(1),kstar(2),sep,&
+            porb,ecc,rrl1,rrl2,aj(1),aj(2),tms(1),tms(2),&
+            mc_he(1),mc_he(2),mc_co(1),mc_co(2),rad(1),&
+            rad(2),mass0(1),mass0(2),lumin(1),lumin(2),&
+            teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+            renv(1),renv(2),ospin(1),ospin(2),b01_bcm,&
+            b02_bcm,bacc(1),bacc(2),tacc(1),tacc(2),&
+            epoch(1),epoch(2),bhspin(1),bhspin(2),&
+            deltam1_bcm,deltam2_bcm,formation(1),&
+            formation(2),binstate,mergertype,z,'bpp')
+        endif
+
+        epoch(1) = tphys - aj(1)
+        epoch(2) = tphys - aj(2)
+
+        if(.not.coel)then
+          ! Next step should be made without changing the time.
+          if(ecc.gt.1.d0)then
+            if(kstar(1).ge.13)then
+              rc = corerd(kstar(1),mass(1),mass(1),zpars(2))
+              ospin(1) = jspin(1)/(k3*rc*rc*mass(1))
+            endif
+            if(kstar(2).ge.13)then
+              rc = corerd(kstar(2),mass(2),mass(2),zpars(2))
+              ospin(2) = jspin(2)/(k3*rc*rc*mass(2))
+            endif
+            just_disrupted = .true.
+            cntct = .false.
+            rlof = .false.
+            exit evolv_contact
+            !goto 135 ! TODO ! disrupted
+          endif
+
+          ! Need to confirm that RLO is over
+          evolve_type = 4.0
+          rrl1 = rad(1)/rol(1)
+          rrl2 = rad(2)/rol(2)
+          teff1 = 1000.d0*((1130.d0*lumin(1)/&
+            (rad(1)**2.d0))**(1.d0/4.d0))
+          teff2 = 1000.d0*((1130.d0*lumin(2)/&
+            (rad(2)**2.d0))**(1.d0/4.d0))
+          if(B_0(1).eq.0.d0)then !PK.
+            b01_bcm = 0.d0
+          elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+            b01_bcm = B_0(1)
+          else
+            b01_bcm = B(1)
+          endif
+          if(B_0(2).eq.0.d0)then
+            b02_bcm = 0.d0
+          elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+            b02_bcm = B_0(2)
+          else
+            b02_bcm = B(2)
+          endif
+
+          CALL writetab(bpp_ind,tphys,evolve_type,mass(1),mass(2),&
+            kstar(1),kstar(2),sep,porb,ecc,rrl1,rrl2,aj(1),aj(2),&
+            tms(1),tms(2),mc_he(1),mc_he(2),mc_co(1),mc_co(2),&
+            rad(1),rad(2),mass0(1),mass0(2),lumin(1),lumin(2),&
+            teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+            renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,&
+            bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),epoch(2),&
+            bhspin(1),bhspin(2),deltam1_bcm,deltam2_bcm,&
+            formation(1),formation(2),binstate,mergertype,z,'bpp')
+          dtm = 0.d0
+
+          ! Reset orbital parameters as separation may have changed.
+          porb = (sep/aursun)*SQRT(sep/(aursun*(mass(1)+mass(2))))
+          oorb = twopi/porb
+
+          rlof = .false.
+          cntct = .false.
+          exit evolv_contact
+          ! goto 4 return to evolv_detached
+        endif
+      endif evolv_contact
+
+      if(just_disrupted)then
+        sgl=.true.
+        just_disrupted=.false.
+
+        if(kstar(1).eq.13.and.mergemsp.eq.1.and.&
+          notamerger.eq.0)then
+          s = (twopi*yearsc)/ospin(1)
+          if(s.lt.0.03d0.and.B(1).gt.0.d0)then
+            merge_mem = 1
+          endif
+        endif
+
+        if(kstar(2).eq.13.and.mergemsp.eq.1.and.&
+          notamerger.eq.0)then
+          s = (twopi*yearsc)/ospin(2)
+          if(s.lt.0.03d0.and.B(2).gt.0.d0)then
+            merge_mem = 1
+          endif
+        endif
+        if(kstar(1).ne.15.or.kstar(2).ne.15)then
+          if(com)then
+            com = .false.
+          else
+          endif
+          mass1_bpp = mass(1)
+          mass2_bpp = mass(2)
+          ! KB remove these 20 jul 23: we want the stars to not have mass
+          ! if they are kstar=15
+          !            if(kstar(1).eq.15) mass1_bpp = mass0(1)
+          !            if(kstar(2).eq.15) mass2_bpp = mass0(2)
+          if(coel)then
+            evolve_type = 6.0
+            teff1 = 1000.d0*((1130.d0*lumin(1)/&
+              (rad(1)**2.d0))**(1.d0/4.d0))
+            teff2 = 1000.d0*((1130.d0*lumin(2)/&
+              (rad(2)**2.d0))**(1.d0/4.d0))
+            if(B_0(1).eq.0.d0)then !PK.
+              b01_bcm = 0.d0
+            elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+              b01_bcm = B_0(1)
+            else
+              b01_bcm = B(1)
+            endif
+            if(B_0(2).eq.0.d0)then
+              b02_bcm = 0.d0
+            elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+              b02_bcm = B_0(2)
+            else
+              b02_bcm = B(2)
+            endif
+            CALL writetab(bpp_ind,tphys,evolve_type,mass1_bpp,mass2_bpp,&
+              kstar(1),kstar(2),0.d0,0.d0,-1.d0,0.d0,ngtv,aj(1),aj(2),&
+              tms(1),tms(2),mc_he(1),mc_he(2),mc_co(1),mc_co(2),rad(1),rad(2),&
+              mass0(1),mass0(2),lumin(1),lumin(2),teff1,teff2,radc(1),radc(2),&
+              menv(1),menv(2),renv(1),renv(2),ospin(1),ospin(2),b01_bcm,&
+              b02_bcm,bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),epoch(2),&
+              bhspin(1),bhspin(2),deltam1_bcm,deltam2_bcm,formation(1),&
+              formation(2),binstate,mergertype,z,'bpp')
+          elseif(ecc.gt.1.d0)then
+            ! Binary dissolved by a supernova or tides.
+            evolve_type = 11.0
+            binstate = 2
+            mergertype = -1
+            porb = -1.d0
+            sep = -1.d0
+            ecc = -1.d0
+            teff1 = 1000.d0*((1130.d0*lumin(1)/&
+              (rad(1)**2.d0))**(1.d0/4.d0))
+            teff2 = 1000.d0*((1130.d0*lumin(2)/&
+              (rad(2)**2.d0))**(1.d0/4.d0))
+
+            if(B_0(1).eq.0.d0)then !PK.
+              b01_bcm = 0.d0
+            elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+              b01_bcm = B_0(1)
+            else
+              b01_bcm = B(1)
+            endif
+            if(B_0(2).eq.0.d0)then
+              b02_bcm = 0.d0
+            elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+              b02_bcm = B_0(2)
+            else
+              b02_bcm = B(2)
+            endif
+            CALL writetab(bpp_ind,tphys,evolve_type,mass1_bpp,mass2_bpp,&
+              kstar(1),kstar(2),sep,porb,ecc,0.d0,ngtv2,aj(1),aj(2),tms(1),tms(2),&
+              mc_he(1),mc_he(2),mc_co(1),mc_co(2),rad(1),rad(2),mass0(1),mass0(2),&
+              lumin(1),lumin(2),teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+              renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,bacc(1),bacc(2),&
+              tacc(1),tacc(2),epoch(1),epoch(2),bhspin(1),bhspin(2),deltam1_bcm,&
+              deltam2_bcm,formation(1),formation(2),binstate,mergertype,z,'bpp')
+          else
+            evolve_type = 9.0
+            porb = 0.d0
+            sep = 0.d0
+            teff1 = 1000.d0*((1130.d0*lumin(1)/&
+              (rad(1)**2.d0))**(1.d0/4.d0))
+            teff2 = 1000.d0*((1130.d0*lumin(2)/&
+              (rad(2)**2.d0))**(1.d0/4.d0))
+
+            if(B_0(1).eq.0.d0)then !PK.
+              b01_bcm = 0.d0
+            elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+              b01_bcm = B_0(1)
+            else
+              b01_bcm = B(1)
+            endif
+            if(B_0(2).eq.0.d0)then
+              b02_bcm = 0.d0
+            elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+              b02_bcm = B_0(2)
+            else
+              b02_bcm = B(2)
+            endif
+
+            CALL writetab(bpp_ind,tphys,evolve_type,mass1_bpp,mass2_bpp,&
+              kstar(1),kstar(2),0.d0,0.d0,0.d0,0.d0,ngtv,aj(1),aj(2),&
+              tms(1),tms(2),mc_he(1),mc_he(2),mc_co(1),mc_co(2),rad(1),rad(2),&
+              mass0(1),mass0(2),lumin(1),lumin(2),teff1,teff2,radc(1),radc(2),&
+              menv(1),menv(2),renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,&
+              bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),epoch(2),bhspin(1),&
+              bhspin(2),deltam1_bcm,deltam2_bcm,formation(1),formation(2),&
+              binstate,mergertype,z,'bpp')
+          endif
+        endif
+
+        if(kstar(2).eq.15)then
+          kmax = 1
+          rol(2) = -1.d0*rad(2)
+          dtmi(2) = tphysf
+          CALL hrdiag(mass0(2),aj(2),mass(2),tms(2),tn,tscls,lums,GB,zpars,rad(2),&
+            lumin(2),kstar(2),massc(2),radc(2),menv(2),renv(2),k2str(2),bhspin(2),2)
+
+        elseif(kstar(1).eq.15)then
+          kmin = 2
+          rol(1) = -1.d0*rad(1)
+          dtmi(1) = tphysf
+          CALL hrdiag(mass0(1),aj(1),mass(1),tms(1),tn,tscls,lums,GB,zpars,rad(1),&
+            lumin(1),kstar(1),massc(1),radc(1),menv(1),renv(1),k2str(1),bhspin(1),1)
+        endif
+
+        ! Makes sure coalesced NSs are reset. PK.
+        if(kstar(1).eq.13.and.ecc.le.1.d0.and.pulsar.gt.0.and.notamerger.eq.0)then
+          age = 0.d0
+          epoch(1) = tphys
+        endif
+        if(kstar(2).eq.13.and.ecc.le.1.d0.and.pulsar.gt.0.and.notamerger.eq.0)then
+          age = 0.d0
+          epoch(2) = tphys
+        endif
+
+        ecc = -1.d0
+        if(binstate.eq.2)then
+          ! Check if disrupted then we want sep=ecc=porb=-1
+          sep = -1.d0
+        elseif(binstate.eq.1)then
+          ! check if merge then sep=0
+          porb = 0.d0
+          sep = 0.d0
+        endif
+        dtm = 0.d0
+        coel = .false.
+        !goto 4 ! TODO
+      endif
+
+      ! binary comes here only once, after it's done evolving
+      if(finished)then
+        if(com)then
+          com = .false.
+        else
+          mass1_bpp = mass(1)
+          mass2_bpp = mass(2)
+          ! added by PA for systems that manage to reach here
+          ! without encountering write bpp at all
+          if (bpp_ind<1) then
+            evolve_type = 1.d0
+            rrl1 = rad(1)/rol(1)
+            rrl2 = rad(2)/rol(2)
+            teff1 = 1000.d0*((1130.d0*lumin(1)/&
+              (rad(1)**2.d0))**(1.d0/4.d0))
+            teff2 = 1000.d0*((1130.d0*lumin(2)/&
+              (rad(2)**2.d0))**(1.d0/4.d0))
+            if(B_0(1).eq.0.d0)then !PK.
+              b01_bcm = 0.d0
+            elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+              b01_bcm = B_0(1)
+            else
+              b01_bcm = B(1)
+            endif
+            if(B_0(2).eq.0.d0)then
+              b02_bcm = 0.d0
+            elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+              b02_bcm = B_0(2)
+            else
+              b02_bcm = B(2)
+            endif
+
+            CALL writetab(bpp_ind,tphys,evolve_type,mass(1),mass(2),&
+              kstar(1),kstar(2),sep,porb,ecc,rrl1,rrl2,aj(1),aj(2),tms(1),tms(2),&
+              mc_he(1),mc_he(2),mc_co(1),mc_co(2),rad(1),rad(2),mass0(1),mass0(2),&
+              lumin(1),lumin(2),teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+              renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,bacc(1),bacc(2),&
+              tacc(1),tacc(2),epoch(1),epoch(2),bhspin(1),bhspin(2),deltam1_bcm,&
+              deltam2_bcm,formation(1),formation(2),binstate,mergertype,z,'bpp')
+          endif
+
+          if(coel)then
+            evolve_type = 6.0
+            teff1 = 1000.d0*((1130.d0*lumin(1)/&
+              (rad(1)**2.d0))**(1.d0/4.d0))
+            teff2 = 1000.d0*((1130.d0*lumin(2)/&
+              (rad(2)**2.d0))**(1.d0/4.d0))
+            if(B_0(1).eq.0.d0)then !PK.
+              b01_bcm = 0.d0
+            elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+              b01_bcm = B_0(1)
+            else
+              b01_bcm = B(1)
+            endif
+            if(B_0(2).eq.0.d0)then
+              b02_bcm = 0.d0
+            elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+              b02_bcm = B_0(2)
+            else
+              b02_bcm = B(2)
+            endif
+            CALL writetab(bpp_ind,tphys,evolve_type,mass1_bpp,mass2_bpp,&
+              kstar(1),kstar(2),0.d0,0.d0,-1.d0,0.d0,ngtv,aj(1),aj(2),&
+              tms(1),tms(2),mc_he(1),mc_he(2),mc_co(1),mc_co(2),rad(1),rad(2),&
+              mass0(1),mass0(2),lumin(1),lumin(2),teff1,teff2,radc(1),radc(2),&
+              menv(1),menv(2),renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,&
+              bacc(1),bacc(2),tacc(1),tacc(2),epoch(1),epoch(2),bhspin(1),&
+              bhspin(2),deltam1_bcm,deltam2_bcm,formation(1),formation(2),&
+              binstate,mergertype,z,'bpp')
+
+          elseif(kstar(1).eq.15.and.kstar(2).eq.15)then
+            ! Cases of accretion induced supernova or single star supernova.
+            ! No remnant is left in either case.
+            evolve_type = 9.0
+            porb = 0.d0
+            sep = 0.d0
+            teff1 = 1000.d0*((1130.d0*lumin(1)/&
+              (rad(1)**2.d0))**(1.d0/4.d0))
+            teff2 = 1000.d0*((1130.d0*lumin(2)/&
+              (rad(2)**2.d0))**(1.d0/4.d0))
+            if(B_0(1).eq.0.d0)then !PK.
+              b01_bcm = 0.d0
+            elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+              b01_bcm = B_0(1)
+            else
+              b01_bcm = B(1)
+            endif
+            if(B_0(2).eq.0.d0)then
+              b02_bcm = 0.d0
+            elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+              b02_bcm = B_0(2)
+            else
+              b02_bcm = B(2)
+            endif
+
+            CALL writetab(bpp_ind,tphys,evolve_type,mass1_bpp,mass2_bpp,&
+              kstar(1),kstar(2),0.d0,0.d0,0.d0,0.d0,ngtv2,aj(1),aj(2),tms(1),tms(2),&
+              mc_he(1),mc_he(2),mc_co(1),mc_co(2),rad(1),rad(2),mass0(1),mass0(2),&
+              lumin(1),lumin(2),teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+              renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,bacc(1),bacc(2),&
+              tacc(1),tacc(2),epoch(1),epoch(2),bhspin(1),bhspin(2),&
+              deltam1_bcm,deltam2_bcm,formation(1),formation(2),binstate,&
+              mergertype,z,'bpp')
+          else
+            evolve_type = 10.0
+            !added by PA for systems that stop evolving halfway
+            if(iter.ge.loop) evolve_type = 100.0
+            if (using_METISSE.eq.1) then
+              call check_error(ierr)
+              if (ierr>0) evolve_type = 101.0
+            end if
+            rrl1 = rad(1)/rol(1)
+            rrl2 = rad(2)/rol(2)
+            teff1 = 1000.d0*((1130.d0*lumin(1)/&
+              (rad(1)**2.d0))**(1.d0/4.d0))
+            teff2 = 1000.d0*((1130.d0*lumin(2)/&
+              (rad(2)**2.d0))**(1.d0/4.d0))
+            if(B_0(1).eq.0.d0)then !PK.
+              b01_bcm = 0.d0
+            elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+              b01_bcm = B_0(1)
+            else
+              b01_bcm = B(1)
+            endif
+            if(B_0(2).eq.0.d0)then
+              b02_bcm = 0.d0
+            elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+              b02_bcm = B_0(2)
+            else
+              b02_bcm = B(2)
+            endif
+
+            CALL writetab(bpp_ind,tphys,evolve_type,mass1_bpp,mass2_bpp,&
+              kstar(1),kstar(2),sep,porb,ecc,rrl1,rrl2,aj(1),aj(2),tms(1),tms(2),&
+              mc_he(1),mc_he(2),mc_co(1),mc_co(2),rad(1),rad(2),mass0(1),mass0(2),&
+              lumin(1),lumin(2),teff1,teff2,radc(1),radc(2),menv(1),menv(2),&
+              renv(1),renv(2),ospin(1),ospin(2),b01_bcm,b02_bcm,bacc(1),bacc(2),&
+              tacc(1),tacc(2),epoch(1),epoch(2),bhspin(1),bhspin(2),&
+              deltam1_bcm,deltam2_bcm,formation(1),formation(2),binstate,&
+              mergertype,z,'bpp')
+          endif
+        endif
+
+        if((isave.and.tphys.ge.tsave).or.iplot)then
+          if(B_0(1).eq.0.d0)then !PK.
+            b01_bcm = 0.d0
+          elseif(B_0(1).gt.0.d0.and.B(1).eq.0.d0)then
+            b01_bcm = B_0(1)
+          else
+            b01_bcm = B(1)
+          endif
+          if(B_0(2).eq.0.d0)then
+            b02_bcm = 0.d0
+          elseif(B_0(2).gt.0.d0.and.B(2).eq.0.d0)then
+            b02_bcm = B_0(2)
+          else
+            b02_bcm = B(2)
+          endif
+          teff1 = 1000.d0*((1130.d0*lumin(1)/&
+            (rad(1)**2.d0))**(1.d0/4.d0))
+          teff2 = 1000.d0*((1130.d0*lumin(2)/&
+            (rad(2)**2.d0))**(1.d0/4.d0))
+          rrl1 = rad(1)/rol(1)
+          rrl2 = rad(2)/rol(2)
+          dt = MAX(dtm,1.0d-12)*1.0d+06
+          if(j1.eq.1)then
+            deltam1_bcm = (-1.0*dm1 - dms(1))/dt
+            deltam2_bcm = (dm2 - dms(2))/dt
+          else
+            deltam1_bcm = (dm2 - dms(1))/dt
+            deltam2_bcm = (-1.0*dm1 - dms(2))/dt
+          endif
+          ! Check if PISN occurred, and if so overwrite formation
+          if(pisn_track(1).ne.0) formation(1) = pisn_track(1)
+          if(pisn_track(2).ne.0) formation(2) = pisn_track(2)
+          CALL writetab(ip,tphys,evolve_type,mass(1),mass(2),kstar(1),kstar(2),&
+            sep,porb,ecc,rrl1,rrl2,aj(1),aj(2),tms(1),tms(2),mc_he(1),mc_he(2),&
+            mc_co(1),mc_co(2),rad(1),rad(2),mass0(1),mass0(2),lumin(1),lumin(2),&
+            teff1,teff2,radc(1),radc(2),menv(1),menv(2),renv(1),renv(2),&
+            ospin(1),ospin(2),b01_bcm,b02_bcm,bacc(1),bacc(2),tacc(1),tacc(2),&
+            epoch(1),epoch(2),bhspin(1),bhspin(2),deltam1_bcm,deltam2_bcm,&
+            formation(1),formation(2),binstate,mergertype,z,'bcm')
+          if(output) write(*,*)'bcm4:',kstar(1),kstar(2),mass(1),mass(2),&
+            rad(1),rad(2),ospin(1),ospin(2),jspin(1),tphys,tphysf
+
+          if(isave) tsave = tsave + dtp
+          if(tphysf.le.0.d0)then
+            ip = ip + 1
+            do k = 1,38
+              bcm_array(ip,k) = bcm_array(ip-1,k)
+            enddo
+          endif
+
+        elseif((kstar(1).eq.15.and.kstar(2).eq.15))then
+          tphys = tphysf
+          evolve_type = 10.0
+          !goto 135 ! TODO AAAA
+        endif
+
+        tphysfhold = tphysf
+        tphysf = tphys
+        if(sgl)then
+          if(ecc.ge.0.d0.and.ecc.le.1.d0) ecc = -1.d0
+          porb = -1.d0
+        endif
+        porb = porb*yeardy
+
+        if(bpp_ind.ge.1000)then
+          ! WRITE(*,*)' STOP: EVOLV2 ARRAY ERROR '
+          ! CALL exit(0)
+          !STOP
+        elseif(ip.ge.40)then
+          WRITE(99,*)' EVOLV2 ARRAY WARNING ',mass1i,mass2i,tbi,ecci,ip
+        elseif (IP+1>SIZE(bcm_array,1)) then
+          WRITE(99,*)'IP>SIZE(BCM)',IP, size(bcm_array,1)
+        endif
+        if(iter.ge.loop)then
+          WRITE(99,*)'ITER>=LOOP:',bpp_ind,tphys,tphysfhold,dtp,kstar,&
+            age,kst,id1_pass,id2_pass,mass(1),mass(2),iter,loop
+          ! CALL exit(0)
+          ! STOP
+        endif
+      endif
+
+    enddo evolv_main
+
+    ! the very very very end
+    bcm_array(ip+1,1) = -1.0
+    bpp_array(bpp_ind+1,1) = -1.0
+
+    if(using_cmc.eq.0)then
+      bcm_index_out = ip
+      bpp_index_out = bpp_ind
+    endif
+    if(using_metisse==1) call dealloc_track()
 
   end subroutine evolv2
 
@@ -3324,26 +4176,24 @@ end module evolve
 program test
 
   use evolve, only: evolv2, dp, max_loop,&
-    num_bcm_cols, num_bpp_cols, num_kick_info_cols
+    n_col_bcm, n_col_bpp, n_col_kick_info
   implicit none
 
   integer :: bpp_out, bcm_out
   real(dp), dimension(20) :: zpars
   real(dp), allocatable, dimension(:,:) :: kick_info, bpp, bcm
 
-  allocate(kick_info(2,num_kick_info_cols))
-  allocate(bpp(max_loop,num_bpp_cols))
-  allocate(bcm(max_loop,num_bcm_cols))
+  allocate(kick_info(2,n_col_kick_info))
+  allocate(bpp(max_loop,n_col_bpp))
+  allocate(bcm(max_loop,n_col_bcm))
 
   call evolv2(mass=[1d0, 1d0], kstar=[1,1],&
-    porb=1d0, ecc=0d0, z=0.014d0, tphys=0d0, tphysf=13700.d0,&
+    porb=1d0, ecc=0d0, z=0.014d0, tphysf=13700.d0,&
     dtp=0d0, mass0=[1d0, 1d0], rad=[1d0,1d0],&
     lumin=[0d0,0d0], massc=[1d-1, 1d-1], radc=[1d-2,1d-2],&
-    ospin=[0d0,0d0], B_0=[0d0, 0d0], bacc=[0d0,0d0],&
+    menv=[0.d0,0.d0], renv=[0.d0,0.d0], ospin=[0d0,0d0], B_0=[0d0, 0d0], bacc=[0d0,0d0],&
     tacc=[0d0,0d0], epoch=[0d0,0d0], tms=[0d0,0d0],&
-    bhspin=[0d0,0d0],&
-    zpars=zpars, kick_info_array=kick_info,&
-    bpp_array=bpp, bcm_array=bcm,&
+    bhspin=[0d0,0d0], tphys=0d0, zpars=zpars, kick_info=kick_info,&
     bpp_index_out=bpp_out, bcm_index_out=bcm_out)
 
   deallocate(kick_info, bpp, bcm)
