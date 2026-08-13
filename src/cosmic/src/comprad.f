@@ -1,7 +1,8 @@
 ***
       SUBROUTINE compute_r(mass,z,num,rad)
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 
 ***
 * In Fortran, we can't dynamically allocate arrays

@@ -23,8 +23,10 @@
 *
 ***
       real*8 FUNCTION lzamsf(m)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE '../const_bse.h'
+      !INCLUDE '../const_bse.h'
       real*8 m,mx,a(200)
       common /MSCFF/ a
 *
@@ -234,7 +236,7 @@
       real*8 m,m2,rchk,a(200)
       common /MSCFF/ a
       real*8 rzamsf
-      external rzamsf
+      !external rzamsf
 *
 * A function to evaluate the radius at the end of the MS
 * Note that a safety check is added to ensure Rtms > Rzams
@@ -263,7 +265,7 @@
       INCLUDE '../const_bse.h'
       real*8 m,met,Rtms200,Rtms199,slope
       real*8 rtmssse, rtmsBoost, rtmsBpass
-      external rtmssse
+      !external rtmssse
 *
 * For Z < 0.04 Z_sun (i.e. Z < 0.0008) the polynomial fitting extrapolation of
 * Hurley et al. leads to negative stellar radii at the end of the main sequence.
@@ -922,7 +924,7 @@
       real*8 m,mhefl,mfgb,mr,m1,m2,r1,a(200)
       common /GBCFF/ a
       real*8 lheif,rminf,ragbf
-      external lheif,rminf,ragbf
+      !external lheif,rminf,ragbf
 *
 * A function to evaluate the blue-loop fraction of the He-burning
 * lifetime for IM & HM stars  (OP 28/01/98)

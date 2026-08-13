@@ -1,8 +1,10 @@
       SUBROUTINE hrdiag(mass,aj,mt,tm,tn,tscls,lums,GB,zpars,
      &                  r,lum,kw,mc,rc,menv,renv,k2,
      &                  bhspin,id)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       
       integer kw,id
 *

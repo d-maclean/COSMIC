@@ -1,6 +1,7 @@
       SUBROUTINE zcnsts(z,zpars)
+      use evolve, only: using_METISSE, using_SSE
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       
       real*8 z,zpars(20)
       integer :: ierr

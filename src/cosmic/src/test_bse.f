@@ -31,9 +31,11 @@
 *       Advice by Christopher Tout, Onno Pols & Sverre Aarseth.
 *       ++++++++++++++++++++++++++++++++++++++++++++++++++
 ***
+      use constants
+      use evolve
       implicit none
-*
-      INCLUDE 'const_bse.h'
+*     
+      !INCLUDE 'const_bse.h'
 *
       integer i,kw,kw2,kstar(2),j,k,time,idum
       integer bpp_index_out, bcm_index_out
@@ -42,9 +44,9 @@
       real*8 epoch(2),tms(2),tphys,tphysf,dtp,aj
       real*8 rad(2),lum(2),ospin(2)
       real*8 massc(2),radc(2),menv(2),renv(2)
-      real*8 tb,ecc,yearsc
+      real*8 tb,ecc!,yearsc
       real*8 B_0(2),bacc(2),tacc(2),bhspin(2)
-      PARAMETER(yearsc=3.1557d+07)
+      !PARAMETER(yearsc=3.1557d+07)
       CHARACTER*8 label(16)
 *
 ************************************************************************

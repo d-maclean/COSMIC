@@ -15,7 +15,7 @@ project('cosmic',
 # Enable fortran and check arguments
 # add_languages('fortran', native: false)
 ff = meson.get_compiler('fortran')
-f_args = ff.get_supported_arguments('-fPIC')
+f_args = ff.get_supported_arguments('-fPIC', '-ffixed-line-length-127', '-ffree-line-length-255', checked: 'require')
 add_project_arguments(f_args, language: 'fortran')
 
 
@@ -36,7 +36,9 @@ lib_source = [
     'src/cosmic/src/corerd.f',
     'src/cosmic/src/comenv.f',
     'src/cosmic/src/dgcore.f',
-    'src/cosmic/src/evolv2.f',
+    #'src/cosmic/src/evolv2.f',
+    'src/cosmic/src/evolve_new.f90',
+    'src/cosmic/src/constants.f90',
     'src/cosmic/src/gntage.f',
     'src/cosmic/src/instar.f',
     'src/cosmic/src/kick.f',
@@ -88,7 +90,7 @@ endif
 
 f2py_source = custom_target(
     'evolvebin-target',
-    input : ['src/cosmic/src/evolv2.f', 'src/cosmic/src/comprad.f', 'src/cosmic/src/METISSE/src/c_m_interface.f90'],
+    input : ['src/cosmic/src/evolve_new.f90', 'src/cosmic/src/comprad.f', 'src/cosmic/src/METISSE/src/c_m_interface.f90'],
     output : ['_evolvebinmodule.c', '_evolvebin-f2pywrappers.f', '_evolvebin-f2pywrappers2.f90'],
     command : [py3, '-m', 'numpy.f2py', '@INPUT@', '-m', '_evolvebin', '--lower']
 )

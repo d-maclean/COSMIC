@@ -1,16 +1,19 @@
 ***
       SUBROUTINE assign_remnant(zpars,mc,mcbagb,mass,mt,kw,bhspin,kidx)
-      IMPLICIT NONE
-      INCLUDE 'const_bse.h'
       
-      common /fall/fallback
+      use constants
+      use evolve
+      IMPLICIT NONE
+      !INCLUDE 'const_bse.h'
+      
+      !common /fall/fallback
       REAL*8 fallback
       real*8 zpars(20)
 
       real*8 avar,bvar
       real*8 mc,mcbagb,mass,mt,mc_tot,met
       real*8 frac,kappa,sappa,alphap,polyfit
-      real*8 m_proto,m_FeNi,m_fb,bhspin,mrem,mch,dMppi
+      real*8 m_proto,m_FeNi,m_fb,bhspin,mrem,mchw,dMppi
       real*8 mtemp1, mtemp2
       integer kw,kidx
 
@@ -30,7 +33,7 @@
       mc_tot = mc_co(kidx) + mc_he(kidx)
 
 * Set the Chandrasekhar mass
-      mch = 1.44d0 !set here owing to AIC ECSN model.
+      mchw = mch !1.44d0 !set here owing to AIC ECSN model.
 
 * Check if remnant is below Chandrasekhar mass
       if(mc_co(kidx).lt.mch)then
@@ -478,8 +481,10 @@
 
 
       SUBROUTINE baryonic_to_gravitational_mass(mt, mrem)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 
       real*8 mt, mrem
 
@@ -506,11 +511,13 @@
 
 
       SUBROUTINE assign_remnant_mandel_muller(mc, mc_tot, mt)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       
       real ran3
-      EXTERNAL ran3
+      !EXTERNAL ran3
       EXTERNAL RandomTruncatedNormal
 
       real*8 mc, mc_tot, mt
@@ -598,14 +605,16 @@
 *       mt         : Remnant mass after SN
 
 
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 
-      common /fall/fallback
+      !common /fall/fallback
       REAL*8 fallback
 
       real ran3
-      EXTERNAL ran3
+      !EXTERNAL ran3
 
       real*8 mc, mc_tot, mt, met, u_NS
       real*8 log10Z_bounded
@@ -709,11 +718,13 @@ collapse BH if the CO core mass is outside the Maltsev+25 range
 
 
       SUBROUTINE assign_remnant_spin(mc, bhspin)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 
       real  ran3
-      EXTERNAL ran3
+      !EXTERNAL ran3
 
       real*8 mc, bhspin
 
@@ -751,7 +762,9 @@ collapse BH if the CO core mass is outside the Maltsev+25 range
 *                 1 if case B mass transfer found
 *                 2 if case C mass transfer found
 *
-      INCLUDE 'const_bse.h'
+      use constants
+      use evolve
+      !INCLUDE 'const_bse.h'
 
       integer star
       integer i, col, kstar

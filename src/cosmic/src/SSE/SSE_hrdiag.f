@@ -2,8 +2,11 @@
       SUBROUTINE SSE_hrdiag(mass,aj,mt,tm,tn,tscls,lums,GB,zpars,
      &                  r,lum,kw,mc,rc,menv,renv,k2,
      &                  bhspin,kidx)
+      
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE '../const_bse.h'
+      !INCLUDE '../const_bse.h'
 *
 *
 *       H-R diagram for population I stars.
@@ -28,11 +31,11 @@
       real*8 mass,aj,mt,tm,tn,tscls(20),lums(10),GB(10),zpars(20),met
       real*8 bhspin
       real*8 r,lum,mc,rc,menv,renv,k2
-      real*8 mch,mlp,tiny
+      real*8 mlp!,tiny,mch,
 *      parameter(mch=1.44d0,mlp=12.d0,tiny=1.0d-14)
-      parameter(mlp=12.d0,tiny=1.0d-14)
+      parameter(mlp=12.d0)!,tiny=1.0d-14)
       real*8 mass0,mt0,mtc
-      common /fall/fallback
+      !common /fall/fallback
       REAL*8 fallback
       REAL ran3
       EXTERNAL ran3
@@ -83,7 +86,7 @@
 *
       ! track whether a star stripped during hrdiag
       stripped_during_hrdiag = .false.
-      mch = 1.44d0 !set here owing to AIC ECSN model.
+      !mch = 1.44d0 !set here owing to AIC ECSN model.
 *
       mass0 = mass
 C      if(mass0.gt.100.d0) mass = 100.d0

@@ -1,7 +1,9 @@
 ***
       SUBROUTINE MIX(M0,M,AJ,KS,ZPARS,bhspin,dtm)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 *
 *     Author : J. R. Hurley
 *     Date :   7th July 1998
@@ -13,9 +15,9 @@
       INTEGER KS(2),I1,I2,K1,K2,KW,ICASE
       REAL*8 M0(2),M(2),AJ(2),ZPARS(20),bhspin(2),dtm
       REAL*8 TSCLS(20),LUMS(10),GB(10),TMS1,TMS2,TMS3,TN
-      REAL*8 M01,M02,M03,M1,M2,M3,AGE1,AGE2,AGE3,MC3,MCH
+      REAL*8 M01,M02,M03,M1,M2,M3,AGE1,AGE2,AGE3,MC3!,MCH
       REAL*8 M_CORE_BGB_1,M_CORE_BGB_2,M_CORE_BGB_3,HE_3_current
-      PARAMETER(MCH=1.44D0)
+      !PARAMETER(MCH=1.44D0)
 *
 *
 *       Define global indices with body #I1 being most evolved.

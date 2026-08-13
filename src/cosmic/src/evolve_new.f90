@@ -26,7 +26,7 @@ module evolve
   integer, parameter:: max_loop = 40000
   integer, parameter:: n_col_bpp = 52
   integer, parameter:: n_col_bcm = 52
-  integer, parameter:: n_col_kick_info = 19
+  !integer, parameter:: n_col_kick_info = 19
 
 ! flags & settings
   integer:: tflag,ifflag,remnantflag,wdflag,bhflag,windflag,qcflag
@@ -57,6 +57,7 @@ module evolve
   real(dp):: merger
   real(dp):: pts1,pts2,pts3
   real(dp):: dmmax,drmax
+  integer:: idum1, idum2, iy, ir(32)
   integer:: bpp_ind, check_dtp
   integer:: col_inds_bpp(52), col_inds_bcm(52)
   integer:: using_metisse, using_sse
@@ -66,8 +67,8 @@ module evolve
   integer, dimension(0:15,0:15) :: ktype
 
   real(dp):: mc_he(2),mc_co(2)
-  real(dp), dimension(max_loop,n_col_bpp) :: bpp_array
-  real(dp), dimension(max_loop,n_col_bcm) :: bcm_array
+  real(dp), dimension(max_loop,n_col_bpp) :: bpp
+  real(dp), dimension(max_loop,n_col_bcm) :: bcm
 
 ! NOTE: It seems we cannot use module vars for the output
 ! arrays because these have the `save` keyword and will
@@ -124,7 +125,6 @@ contains
     real(dp):: mass1i,mass2i,tbi,ecci
     real(dp):: rl,mlwind,vrotf,corerd,f_fac
     real(dp):: qc_fixed
-    real(dp):: idum1, idum2, iy, ir(32)
     real(dp):: k3 = 0.21d0
     real(dp):: acc1 = 3.920659d8
     real(dp):: kw3 = 619.2d0
@@ -133,7 +133,7 @@ contains
     real(dp):: mr23yr = 0.4311d0
 
     integer, intent(out) :: bpp_index_out, bcm_index_out
-    real(dp), dimension(2,n_col_kick_info), intent(out) :: kick_info
+    real(dp), dimension(2,19), intent(out) :: kick_info
 
     logical:: coel,com,prec,inttry,change,snova,sgl,rlof,cntct
     logical:: supedd,novae,disk,inspiral
@@ -4121,7 +4121,7 @@ contains
           if(tphysf.le.0.d0)then
             ip = ip + 1
             do k = 1,38
-              bcm_array(ip,k) = bcm_array(ip-1,k)
+              bcm(ip,k) = bcm(ip-1,k)
             enddo
           endif
 
@@ -4145,8 +4145,8 @@ contains
           !STOP
         elseif(ip.ge.40)then
           WRITE(99,*)' EVOLV2 ARRAY WARNING ',mass1i,mass2i,tbi,ecci,ip
-        elseif (IP+1>SIZE(bcm_array,1)) then
-          WRITE(99,*)'IP>SIZE(BCM)',IP, size(bcm_array,1)
+        elseif (IP+1>SIZE(bcm,1)) then
+          WRITE(99,*)'IP>SIZE(BCM)',IP, size(bcm,1)
         endif
         if(iter.ge.loop)then
           WRITE(99,*)'ITER>=LOOP:',bpp_ind,tphys,tphysfhold,dtp,kstar,&
@@ -4159,8 +4159,8 @@ contains
     enddo evolv_main
 
     ! the very very very end
-    bcm_array(ip+1,1) = -1.0
-    bpp_array(bpp_ind+1,1) = -1.0
+    bcm(ip+1,1) = -1.0
+    bpp(bpp_ind+1,1) = -1.0
 
     if(using_cmc.eq.0)then
       bcm_index_out = ip
@@ -4173,30 +4173,30 @@ contains
 
 end module evolve
 
-program test
-
-  use evolve, only: evolv2, dp, max_loop,&
-    n_col_bcm, n_col_bpp, n_col_kick_info
-  implicit none
-
-  integer :: bpp_out, bcm_out
-  real(dp), dimension(20) :: zpars
-  real(dp), allocatable, dimension(:,:) :: kick_info, bpp, bcm
-
-  allocate(kick_info(2,n_col_kick_info))
-  allocate(bpp(max_loop,n_col_bpp))
-  allocate(bcm(max_loop,n_col_bcm))
-
-  call evolv2(mass=[1d0, 1d0], kstar=[1,1],&
-    porb=1d0, ecc=0d0, z=0.014d0, tphysf=13700.d0,&
-    dtp=0d0, mass0=[1d0, 1d0], rad=[1d0,1d0],&
-    lumin=[0d0,0d0], massc=[1d-1, 1d-1], radc=[1d-2,1d-2],&
-    menv=[0.d0,0.d0], renv=[0.d0,0.d0], ospin=[0d0,0d0], B_0=[0d0, 0d0], bacc=[0d0,0d0],&
-    tacc=[0d0,0d0], epoch=[0d0,0d0], tms=[0d0,0d0],&
-    bhspin=[0d0,0d0], tphys=0d0, zpars=zpars, kick_info=kick_info,&
-    bpp_index_out=bpp_out, bcm_index_out=bcm_out)
-
-  deallocate(kick_info, bpp, bcm)
-  print*, 'success!'
-
-end program test
+!program test
+!
+!  use evolve, only: evolv2, dp, max_loop,&
+!    n_col_bcm, n_col_bpp
+!  implicit none
+!
+!  integer :: bpp_out, bcm_out
+!  real(dp), dimension(20) :: zpars
+!  real(dp), allocatable, dimension(:,:) :: kick_info, bpp, bcm
+!
+!  allocate(kick_info(2,19))
+!  allocate(bpp(max_loop,n_col_bpp))
+!  allocate(bcm(max_loop,n_col_bcm))
+!
+!  call evolv2(mass=[1d0, 1d0], kstar=[1,1],&
+!    porb=1d0, ecc=0d0, z=0.014d0, tphysf=13700.d0,&
+!    dtp=0d0, mass0=[1d0, 1d0], rad=[1d0,1d0],&
+!    lumin=[0d0,0d0], massc=[1d-1, 1d-1], radc=[1d-2,1d-2],&
+!    menv=[0.d0,0.d0], renv=[0.d0,0.d0], ospin=[0d0,0d0], B_0=[0d0, 0d0], bacc=[0d0,0d0],&
+!    tacc=[0d0,0d0], epoch=[0d0,0d0], tms=[0d0,0d0],&
+!    bhspin=[0d0,0d0], tphys=0d0, zpars=zpars, kick_info=kick_info,&
+!    bpp_index_out=bpp_out, bcm_index_out=bcm_out)
+!
+!  deallocate(kick_info, bpp, bcm)
+!  print*, 'success!'
+!
+!end program test

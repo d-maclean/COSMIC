@@ -1,7 +1,8 @@
 ***
       REAL FUNCTION ran3(idum)
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 *
 * Random number generator from Numerical Recipes, Press et al. pg 272.
 *
@@ -9,8 +10,11 @@
       INTEGER j,k,im1,im2,imm1,ia1,ia2,iq1,iq2,ir1,ir2,ntab,ndiv
       PARAMETER(im1=2147483563,im2=2147483399,ia1=40014,ia2=40692)
       PARAMETER(iq1=53668,iq2=52774,ir1=12211,ir2=3791,ntab=32)
-      DATA idum2/123456789/, iy/0/, ir/ntab*0/
+      !DATA idum2/123456789/, iy/0/, ir/ntab*0/
       REAL am
+      idum2 = 123456789
+      iy = 0
+      ir = ntab*0
 *
       am = 1.0/float(im1)
       imm1 = im1 - 1

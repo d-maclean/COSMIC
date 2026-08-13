@@ -8,6 +8,7 @@ module constants
     aursun = 214.95d0,&
     yearsc = 3.1557d7,&
     tiny = 1d-14,&
+    pi = ACOS(-1.d0),&
     twopi = 2.d0*ACOS(-1.d0),&
     mch = 1.44d0
 

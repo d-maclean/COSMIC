@@ -1,7 +1,9 @@
 ***
       real*8 FUNCTION SSE_mlwind(kw,lum,r,mt,mc,rl,z)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE '../const_bse.h'
+      !INCLUDE '../const_bse.h'
       integer kw,testflag
       real*8 lum,r,mt,mc,rl,z,teff,alpha
       real*8 dml,dms,dmt,p0,x,mew,lum0,kap
@@ -260,12 +262,14 @@
 
       real*8 FUNCTION LBV_winds(lum,r,mt,kw,z)
 *        Calculate mass loss from LBV-like winds
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE '../const_bse.h'
+      !INCLUDE '../const_bse.h'
       real*8 lum,r,mt,z,alpha,x
       integer kw
       real*8 MLalpha
-      external MLalpha
+      !external MLalpha
 
       x = 1.0d-5*r*sqrt(lum)
       alpha = 0.d0

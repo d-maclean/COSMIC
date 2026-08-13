@@ -1,6 +1,7 @@
       real*8 FUNCTION mlwind(kw,lum,r,mt,mc,rl,z,id)
+      use evolve, only: using_METISSE, using_SSE
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       
       integer kw,id
       real*8 lum,r,mt,mc,rl,z

@@ -5,7 +5,7 @@
         !to assign common variables when METISSE is used with COSMIC
           
         REAL(dp) :: ecsn,ecsn_mlow
-        COMMON /SNVARS1/ ecsn,ecsn_mlow
+        !COMMON /SNVARS1/ ecsn,ecsn_mlow
          
         real(dp) :: d
         

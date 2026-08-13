@@ -1,6 +1,7 @@
       SUBROUTINE deltat(kw,age,tm,tn,tscls,dt,dtr,id)
+      use evolve, only: using_METISSE, using_SSE
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       
       INTEGER kw,id
       REAL*8 age,tm,tn,tscls(20)

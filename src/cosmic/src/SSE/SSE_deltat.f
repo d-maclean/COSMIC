@@ -1,7 +1,9 @@
 ***
       SUBROUTINE SSE_deltat(kw,age,tm,tn,tscls,dt,dtr)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE '../const_bse.h'
+      !INCLUDE '../const_bse.h'
 *
       INTEGER kw
       REAL*8 age,tm,tn,tscls(20)

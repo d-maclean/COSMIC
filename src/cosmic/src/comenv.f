@@ -7,8 +7,10 @@
      &                  jp,tphys,switchedCE,rad,tms,evolve_type,disrupt,
      &                  lumin,B_0,bacc,tacc,epoch,menv_bpp,renv_bpp,
      &                  deltam_1,deltam_2,dtm)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 *
 * Common Envelope Evolution.
 *
@@ -47,18 +49,20 @@
       REAL*8 EBINDI,EBINDF,EORBI,EORBF,ECIRC,SEPF,SEPL,MF,XX
       REAL*8 SEP_postCE, M_postCE
       REAL*8 CONST,DELY,DERI,DELMF,MC3,FAGE1,FAGE2
-      REAL*8 ECC,SEP,JORB,TB,OORB,OSPIN1,OSPIN2,TWOPI
+      REAL*8 ECC,SEP,JORB,TB,OORB,OSPIN1,OSPIN2!,TWOPI
       REAL*8 RC1,RC2,Q1,Q2,RL1,RL2,LAMB1,LAMB2
       REAL*8 MENV,RENV,MENVD,RZAMS,vk
       REAL*8 Porbi,Porbf,Mcf,Menvf,qi,qf,G
       REAL*8 kick_info(2,19),fallback,M1i,M2i
       REAL*8 bhspin1,bhspin2,dtm
       REAL*8 deltam_1,deltam_2
-      common /fall/fallback
+      !common /fall/fallback
       INTEGER formation1,formation2
       REAL*8 sigmahold
-      REAL*8 AURSUN,K3
-      PARAMETER (AURSUN = 214.95D0,K3 = 0.21D0)
+      REAL*8 K3
+      PARAMETER(K3=0.21D0)
+      !REAL*8 AURSUN,K3
+      !PARAMETER (AURSUN = 214.95D0,K3 = 0.21D0)
       LOGICAL COEL,output
       REAL*8 CELAMF,RL,RZAMSF
       EXTERNAL CELAMF,RL,RZAMSF
@@ -96,7 +100,7 @@
 *
 * For simplicity energies are divided by -G.
 *
-      TWOPI = 2.D0*ACOS(-1.D0)
+      !TWOPI = 2.D0*ACOS(-1.D0)
       COEL = .FALSE.
       snp = 0
       output = .false.

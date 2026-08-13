@@ -1,6 +1,7 @@
       SUBROUTINE star(kw,mass,mt,tm,tn,tscls,lums,GB,zpars,dtm,id)
+      use evolve, only: using_METISSE, using_SSE
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       
       real*8 mass,mt,tm,tn,tscls(20),lums(10),GB(10),zpars(20),dtm
       integer kw ,id

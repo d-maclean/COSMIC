@@ -13,8 +13,10 @@
      &                      deltam_1,deltam_2,SN_1,SN_2,
      &                      bin_state,merger_type,metallicity,
      &                      tabname)
+        use constants
+        use evolve
         IMPLICIT NONE
-        INCLUDE 'const_bse.h'
+        !INCLUDE 'const_bse.h'
 
 *
 * Write results to bpp or bcm array.
@@ -36,10 +38,10 @@
         REAL*8 tb_write,sep_cubed
         INTEGER jp, col_ind
         INTEGER kstar1,kstar2
-        REAL*8 yeardy,aursun,rsunau
-        REAL*8 all_cols(52)
+        !REAL*8 yeardy,aursun,rsunau
+        REAL*8 all_cols(52), rsunau
         CHARACTER*3 tabname
-        PARAMETER(yeardy=365.24d0,aursun=214.95d0)
+        !PARAMETER(yeardy=365.24d0,aursun=214.95d0)
 
         all_cols(1) = tphys
         all_cols(2) = mass1

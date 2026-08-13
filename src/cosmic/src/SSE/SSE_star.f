@@ -1,7 +1,9 @@
 ***
       SUBROUTINE SSE_star(kw,mass,mt,tm,tn,tscls,lums,GB,zpars)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE '../const_bse.h'
+      !INCLUDE '../const_bse.h'
 *
 *
 *       Stellar luminosity & evolution time.
@@ -11,9 +13,9 @@
       integer kw
 *
       real*8 mass,mt,tm,tn,tscls(20),lums(10),GB(10),zpars(20)
-      real*8 tgb,tbagb,mch,mcmax,mc1,mc2,mcbagb,dx,am
+      real*8 tgb,tbagb,mcmax,mc1,mc2,mcbagb,dx,am!,mch
       real*8 lambdastar,tau,mtc,mass0
-      parameter(mch=1.44d0)
+      !parameter(mch=1.44d0)
 *
       real*8 lzamsf,lzahbf,lzhef
       real*8 tbgbf,thookf,tHef,themsf,mcgbf,mcagbf,mcheif,mcgbtf

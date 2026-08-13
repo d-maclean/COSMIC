@@ -1,7 +1,9 @@
 ***
       SUBROUTINE SSE_zcnsts(z,zpars)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE '../const_bse.h'
+      !INCLUDE '../const_bse.h'
 *
       integer kw
 *

@@ -1,7 +1,9 @@
 ***
       SUBROUTINE SSE_gntage(mc,mt,kw,zpars,m0,aj,k)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE '../const_bse.h'
+      !INCLUDE '../const_bse.h'
 *
 * A routine to determine the age of a giant from its core mass and type.
 *
@@ -21,8 +23,8 @@
       real*8 mc,mt,m0,aj,tm,tn,dtm
       real*8 tscls(20),lums(10),GB(10),zpars(20)
       real*8 mmin,mmax,mmid,dm,f,fmid,dell,derl,lum
-      real*8 macc,lacc,tiny
-      parameter(macc=0.00001d0,lacc=0.0001d0,tiny=1.0d-14)
+      real*8 macc,lacc!,tiny
+      parameter(macc=0.00001d0,lacc=0.0001d0)!,tiny=1.0d-14)
       real*8 mcx,mcy
 *
       real*8 mcheif,mcagbf,mheif,mbagbf,mcgbf,lmcgbf,lbgbf,lbgbdf

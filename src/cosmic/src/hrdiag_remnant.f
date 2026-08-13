@@ -1,14 +1,16 @@
 ***
       SUBROUTINE hrdiag_remnant(zpars,mt,mc,lum,r,aj,kw)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       
       real*8 zpars(20)
 
       real*8 mt,mc,lum,r,aj
       integer kw
 
-      real*8 mch,mchold
+      real*8 mchw,mchold !mch, use mchw since we may change it in-scope
       real*8 xx,fac,ahe,aco
       parameter(ahe=4.d0,aco=16.d0)
 
@@ -19,16 +21,16 @@
 * ifflag,ecsn (or mc1), ecsn_low(mc2), bhspinflag,
 *  bhspinmag,  Mbh_initial
 
-         mch = 1.44d0 !set here owing to AIC ECSN model.
+         mchw = mch !1.44d0 !set here owing to AIC ECSN model.
 
          if(kw.ge.10.and.kw.le.12)then
 *
 *        White dwarf.
 *
          mc = mt
-         mchold = mch
-         if(ecsn.gt.0.d0.and.kw.eq.12) mch = 1.38d0
-         if(mc.ge.mch)then
+         mchold = mchw
+         if(ecsn.gt.0.d0.and.kw.eq.12) mchw = 1.38d0
+         if(mc.ge.mchw)then
 *
 * Accretion induced supernova with no remnant
 * unless WD is ONe in which case we assume a NS
@@ -81,14 +83,14 @@
 *
             endif
 *
-            r = 0.0115d0*SQRT(MAX(1.48204d-06,(mch/mt)**(2.d0/3.d0)
-     &                                      - (mt/mch)**(2.d0/3.d0)))
+            r = 0.0115d0*SQRT(MAX(1.48204d-06,(mchw/mt)**(2.d0/3.d0)
+     &                                      - (mt/mchw)**(2.d0/3.d0)))
             r = MIN(0.1d0,r)
             if(mt.lt.0.0005d0) r = 0.09d0
             if(mt.lt.0.000005d0) r = 0.009d0
 *
          endif
-         mch = mchold !added for AIC ECSN stuff.
+         mchw = mchold !added for AIC ECSN stuff.
       endif
 *
       if(kw.eq.13)then

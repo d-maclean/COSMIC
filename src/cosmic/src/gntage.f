@@ -1,6 +1,7 @@
       SUBROUTINE gntage(mc,mt,kw,zpars,m0,aj,id)
+      use evolve, only: using_METISSE, using_SSE
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       
       real*8 mc,mt,zpars,m0,aj
       integer kw ,id

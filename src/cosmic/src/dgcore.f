@@ -1,7 +1,8 @@
 ***
       SUBROUTINE dgcore(kw1,kw2,kw3,m1,m2,m3,ebinde)
+      use constants, only: mch
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 *
 * A routine to determine the outcome of a collision or coalescence
 * of two degenerate cores.
@@ -17,8 +18,8 @@
       parameter(cvhe=3.1d+07,cvc=8.27d+06,cvne=7.44d+06)
       real*8 ehe,ec,ene
       parameter(ehe=5.812d+17,ec=2.21d+17,ene=2.06d+17)
-      real*8 the,tc,gmr,mch
-      parameter(the=1.0d+08,tc=1.0d+09,gmr=1.906d+15,mch=1.44d0)
+      real*8 the,tc,gmr!,mch
+      parameter(the=1.0d+08,tc=1.0d+09,gmr=1.906d+15)!,mch=1.44d0)
 *
       real*8 corerd
       external corerd

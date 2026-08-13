@@ -1,7 +1,9 @@
       SUBROUTINE kick(kw,m1,m1c,m1n,m2,ecc,sep,jorb,vk,sn,
      &                r2,fallback,sigmahold,kick_info,disrupt,tphys)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 *
 * Variables
 * ---------
@@ -60,8 +62,10 @@
 
       SUBROUTINE kick_pfahl(kw,m1,m1c,m1n,m2,ecc,sep,jorb,vk,sn,r2,
      &                      fallback,sigmahold,kick_info,disrupt)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 *
 * This function is implements an entirely new kick prescription based
 * on Appendix B of Pfahl et al. 2002
@@ -100,8 +104,10 @@
 
       real*8 m1,m2,m1n,m1c
       real*8 ecc,ecc_2,sep
-      real*8 pi,twopi,yearsc,rsunkm,G_const
-      parameter(yearsc=3.1557d+07,rsunkm=6.96d+05)
+      real*8 rsunkm,G_const
+      !pi,twopi,yearsc
+      parameter(rsunkm=6.96d+05)
+      !parameter(yearsc=3.1557d+07)
       real*8 mean_anom,ecc_anom,dif,der,del
       real*8 u1,u2,vk,vk2,v(4),s,sigmah
       real*8 theta,phi,sin_phi,cos_phi,sin_theta,cos_theta
@@ -129,7 +135,7 @@
 *
       real*8 kick_info(2,19)
       real ran3,xx
-      external ran3
+      !external ran3
       external RandomTruncatedNormal
 *
       output = .false. !useful for debugging...
@@ -147,8 +153,8 @@
       u2 = 0.d0
       vk = 0.d0
       disberg_mean = 5.60d0
-      pi = ACOS(-1.d0)
-      twopi = 2.d0*pi
+      !pi = ACOS(-1.d0)
+      !twopi = 2.d0*pi
 * Gravitational constant in units of km^3 / (Msun * s^2)
       G_const = 1.3271244d+11
 
@@ -716,8 +722,10 @@
 ***
       SUBROUTINE kick_kiel(kw,m1,m1n,m2,ecc,sep,jorb,vk,snstar,r2,
      &                     fallback,sigmahold,kick_info,disrupt)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
 *
 * WARNINGS (from Tom Wagg)
 * ------------------------
@@ -780,8 +788,9 @@
 
       real*8 m1,m2,m1n,mbi,mbf,mdif
       real*8 ecc,sep,sepn,jorb,ecc2
-      real*8 pi,twopi,gmrkm,yearsc,rsunkm
-      parameter(yearsc=3.1557d+07,rsunkm=6.96d+05)
+      real*8 gmrkm,rsunkm!pi,twopi,yearsc
+      !yearsc=3.1557d+07
+      parameter(rsunkm=6.96d+05)
       real*8 mm,em,dif,der,del,r
       real*8 u1,u2,vk,v(4),s,theta,phi
       real*8 sphi,cphi,stheta,ctheta,salpha,calpha
@@ -802,7 +811,7 @@
 *
       real*8 kick_info(2,19)
       real ran3,xx
-      external ran3
+      !external ran3
 *
       output = .false. !useful for debugging...
       safety = 0
@@ -815,8 +824,8 @@
       u1 = 0.d0
       u2 = 0.d0
       vk = 0.d0
-      pi = ACOS(-1.d0)
-      twopi = 2.d0*pi
+      !pi = ACOS(-1.d0)
+      !twopi = 2.d0*pi
 * Conversion factor to ensure velocities are in km/s using mass and
 * radius in solar units.
       gmrkm = 1.906125d+05
@@ -1364,7 +1373,7 @@
 *
       INTEGER idum
       real ran3
-      external ran3
+      !external ran3
       REAL*8 vx1,vy1,vz1,alpha,gamma,beta,pi,twopi,vx2,vy2,vz2
       REAL*8 cg,sg,ca,sa,cb,sb,vx1s,vy1s,vz1s,vx2s,vy2s,vz2s
 *

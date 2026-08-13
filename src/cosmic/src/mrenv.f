@@ -1,8 +1,10 @@
 ***
       SUBROUTINE mrenv(kw,mass,mt,mc,lum,rad,rc,aj,tm,ltms,lbgb,lhei,
      &                 rzams,rtms,rg,menv,renv,k2e)
+      use constants
+      use evolve
       IMPLICIT NONE
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       integer kw
       real*8 mass,mt,mc,lum,rad,rc,aj,tm
       real*8 k2e,menv,menvg,menvt,menvz,renv,renvg,renvt,renvz

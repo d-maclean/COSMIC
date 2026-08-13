@@ -28,9 +28,11 @@
 * 5. In evolv2.f add new vars to every call of checkstate
 * 6. In checkstate.py add new vars to CHECKSTATE_COLUMNS
 *
+      use constants
+      use evolve
       IMPLICIT NONE
       INCLUDE 'checkstate.h'
-      INCLUDE 'const_bse.h'
+      !INCLUDE 'const_bse.h'
       INTEGER jj,ii,param_index,binstate
       INTEGER kstar1,kstar2
       LOGICAL pass_condition,pass_condition_any
