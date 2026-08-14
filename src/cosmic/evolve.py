@@ -372,8 +372,8 @@ class Evolve(object):
 
         else:
             # default to SSE if stellar engine is SSE or no stellar engine is specified
-            _evolvebin.se_flags.using_sse = 1
-            _evolvebin.se_flags.using_metisse = 0
+            _evolvebin.evolve.using_sse = 1
+            _evolvebin.evolve.using_metisse = 0
            
         # go through each item in the BSEDict and update the initialbinarytable
         new_cols = {}
@@ -568,7 +568,7 @@ class Evolve(object):
         # Allow a user to specify a custom time step sampling for certain parts of the evolution
         timestep_conditions = kwargs.pop('timestep_conditions', [])
         set_checkstates(timestep_conditions=timestep_conditions)
-
+        print("setting col_inds_bpp")
         # set the indices of the columns to include in bpp table (+1 because fortran is 1-indexed)
         col_inds_bpp = np.zeros(len(ALL_COLUMNS), dtype=int)
         col_inds_bpp[:len(bpp_columns)] = [ALL_COLUMNS.index(col) + 1 for col in bpp_columns]
@@ -577,7 +577,6 @@ class Evolve(object):
         for i in range(len(initial_conditions)):
             initial_conditions[i]["n_col_bpp"] = len(bpp_columns)
             initial_conditions[i]["col_inds_bpp"] = col_inds_bpp
-
         # same for bcm
         col_inds_bcm = np.zeros(len(ALL_COLUMNS), dtype=int)
         col_inds_bcm[:len(bcm_columns)] = [ALL_COLUMNS.index(col) + 1 for col in bcm_columns]
@@ -682,109 +681,108 @@ class Evolve(object):
 
 def _evolve_single_system(f, zpars=None):
     if zpars is None:
-        zpars = np.zeros(20, dtype=float)
+        zpars = np.asfortranarray(np.zeros(20), dtype=np.float64)
     try:
         f["kick_info"] = np.zeros((2, len(KICK_COLUMNS)-1))
         # determine if we already have a compact object, if yes than one SN has already occured
         if (f["kstar_1"] in range(10, 15)) or (f["kstar_2"] in range(10, 15)):
             f["kick_info"][0, 0] = 1
         # kstar, mass, orbital period (days), eccentricity, metaliccity, evolution time (millions of years)
-        _evolvebin.windvars.neta = f["neta"]
-        _evolvebin.windvars.bwind = f["bwind"]
-        _evolvebin.windvars.hewind = f["hewind"]
-        _evolvebin.cevars.alpha1 = f["alpha1"]
-        _evolvebin.cevars.lambdaf = f["lambdaf"]
-        _evolvebin.ceflags.ceflag = f["ceflag"]
-        _evolvebin.flags.tflag = f["tflag"]
-        _evolvebin.flags.ifflag = f["ifflag"]
-        _evolvebin.flags.wdflag = f["wdflag"]
-        _evolvebin.flags.rtmsflag = f["rtmsflag"]
-        _evolvebin.snvars.pisn = f["pisn"]
-        _evolvebin.snvars.ppi_co_shift = f["ppi_co_shift"]
-        _evolvebin.snvars.ppi_extra_ml = f["ppi_extra_ml"]
-        _evolvebin.flags.bhflag = f["bhflag"]
-        _evolvebin.flags.remnantflag = f["remnantflag"]
-        _evolvebin.flags.maltsev_mode = f["maltsev_mode"]
-        _evolvebin.snvars.maltsev_fallback = f["maltsev_fallback"]
-        _evolvebin.snvars.maltsev_pf_prob = f["maltsev_pf_prob"]
-        _evolvebin.snvars.fryer_mass_limit = f["fryer_mass_limit"]
-        _evolvebin.ceflags.cekickflag = f["cekickflag"]
-        _evolvebin.ceflags.cemergeflag = f["cemergeflag"]
-        _evolvebin.ceflags.cehestarflag = f["cehestarflag"]
-        _evolvebin.flags.grflag = f["grflag"]
-        _evolvebin.flags.bhms_coll_flag = f["bhms_coll_flag"]
-        _evolvebin.flags.wd_mass_lim = f["wd_mass_lim"]
-        _evolvebin.snvars.mxns = f["mxns"]
-        _evolvebin.points.pts1 = f["pts1"]
-        _evolvebin.points.pts2 = f["pts2"]
-        _evolvebin.points.pts3 = f["pts3"]
-        _evolvebin.snvars.fryer_fmix = f["fryer_fmix"]
-        _evolvebin.snvars.fryer_mcrit_nsbh = f["fryer_mcrit_nsbh"]
-        _evolvebin.snvars.ecsn = f["ecsn"]
-        _evolvebin.snvars.ecsn_mlow = f["ecsn_mlow"]
-        _evolvebin.flags.aic = f["aic"]
-        _evolvebin.ceflags.ussn = f["ussn"]
-        _evolvebin.snvars.sigma = f["sigma"]
-        _evolvebin.snvars.sigmadiv = f["sigmadiv"]
-        _evolvebin.snvars.bhsigmafrac = f["bhsigmafrac"]
-        _evolvebin.snvars.polar_kick_angle = f["polar_kick_angle"]
-        _evolvebin.snvars.natal_kick_array = f["natal_kick_array"]
-        _evolvebin.cevars.qcrit_array = f["qcrit_array"]
-        _evolvebin.mtvars.don_lim = f["don_lim"]
-        _evolvebin.mtvars.acc_lim = f["acc_lim"]
-        _evolvebin.mtvars.smt_periastron_check = f["smt_periastron_check"]
-        _evolvebin.windvars.beta = f["beta"]
-        _evolvebin.windvars.xi = f["xi"]
-        _evolvebin.windvars.acc2 = f["acc2"]
-        _evolvebin.windvars.epsnov = f["epsnov"]
-        _evolvebin.windvars.eddfac = f["eddfac"]
-        _evolvebin.windvars.gamma = f["gamma"]
-        _evolvebin.windvars.lbv_flag = f["LBV_flag"]
-        _evolvebin.flags.bdecayfac = f["bdecayfac"]
-        _evolvebin.magvars.bconst = f["bconst"]
-        _evolvebin.magvars.ck = f["ck"]
-        _evolvebin.flags.windflag = f["windflag"]
-        _evolvebin.flags.qcflag = f["qcflag"]
-        _evolvebin.flags.eddlimflag = f["eddlimflag"]
-        _evolvebin.tidalvars.fprimc_array = f["fprimc_array"]
-        _evolvebin.rand1.idum1 = f["randomseed"]
-        _evolvebin.flags.bhspinflag = f["bhspinflag"]
-        _evolvebin.snvars.bhspinmag = f["bhspinmag"]
-        _evolvebin.mixvars.rejuv_fac = f["rejuv_fac"]
-        _evolvebin.flags.rejuvflag = f["rejuvflag"]
-        _evolvebin.flags.htpmb = f["htpmb"]
-        _evolvebin.flags.st_cr = f["ST_cr"]
-        _evolvebin.flags.st_tide = f["ST_tide"]
-        _evolvebin.snvars.rembar_massloss = f["rembar_massloss"]
-        _evolvebin.metvars.zsun = f["zsun"]
-        _evolvebin.snvars.kickflag = f["kickflag"]
-        _evolvebin.snvars.mm_mu_ns = f["mm_mu_ns"]
-        _evolvebin.snvars.mm_mu_bh = f["mm_mu_bh"]
-        _evolvebin.cmcpass.using_cmc = 0
+        _evolvebin.evolve.neta = f["neta"]
+        _evolvebin.evolve.bwind = f["bwind"]
+        _evolvebin.evolve.hewind = f["hewind"]
+        _evolvebin.evolve.alpha1 = f["alpha1"]
+        _evolvebin.evolve.lambdaf = f["lambdaf"]
+        _evolvebin.evolve.ceflag = f["ceflag"]
+        _evolvebin.evolve.tflag = f["tflag"]
+        _evolvebin.evolve.ifflag = f["ifflag"]
+        _evolvebin.evolve.wdflag = f["wdflag"]
+        _evolvebin.evolve.rtmsflag = f["rtmsflag"]
+        _evolvebin.evolve.pisn = f["pisn"]
+        _evolvebin.evolve.ppi_co_shift = f["ppi_co_shift"]
+        _evolvebin.evolve.ppi_extra_ml = f["ppi_extra_ml"]
+        _evolvebin.evolve.bhflag = f["bhflag"]
+        _evolvebin.evolve.remnantflag = f["remnantflag"]
+        _evolvebin.evolve.maltsev_mode = f["maltsev_mode"]
+        _evolvebin.evolve.maltsev_fallback = f["maltsev_fallback"]
+        _evolvebin.evolve.maltsev_pf_prob = f["maltsev_pf_prob"]
+        _evolvebin.evolve.fryer_mass_limit = f["fryer_mass_limit"]
+        _evolvebin.evolve.cekickflag = f["cekickflag"]
+        _evolvebin.evolve.cemergeflag = f["cemergeflag"]
+        _evolvebin.evolve.cehestarflag = f["cehestarflag"]
+        _evolvebin.evolve.grflag = f["grflag"]
+        _evolvebin.evolve.bhms_coll_flag = f["bhms_coll_flag"]
+        _evolvebin.evolve.wd_mass_lim = f["wd_mass_lim"]
+        _evolvebin.evolve.mxns = f["mxns"]
+        _evolvebin.evolve.pts1 = f["pts1"]
+        _evolvebin.evolve.pts2 = f["pts2"]
+        _evolvebin.evolve.pts3 = f["pts3"]
+        _evolvebin.evolve.fryer_fmix = f["fryer_fmix"]
+        _evolvebin.evolve.fryer_mcrit_nsbh = f["fryer_mcrit_nsbh"]
+        _evolvebin.evolve.ecsn = f["ecsn"]
+        _evolvebin.evolve.ecsn_mlow = f["ecsn_mlow"]
+        _evolvebin.evolve.aic = f["aic"]
+        _evolvebin.evolve.ussn = f["ussn"]
+        _evolvebin.evolve.sigma = f["sigma"]
+        _evolvebin.evolve.sigmadiv = f["sigmadiv"]
+        _evolvebin.evolve.bhsigmafrac = f["bhsigmafrac"]
+        _evolvebin.evolve.polar_kick_angle = f["polar_kick_angle"]
+        _evolvebin.evolve.natal_kick_array = f["natal_kick_array"]
+        _evolvebin.evolve.qcrit_array = f["qcrit_array"]
+        _evolvebin.evolve.don_lim = f["don_lim"]
+        _evolvebin.evolve.acc_lim = f["acc_lim"]
+        _evolvebin.evolve.smt_periastron_check = f["smt_periastron_check"]
+        _evolvebin.evolve.beta = f["beta"]
+        _evolvebin.evolve.xi = f["xi"]
+        _evolvebin.evolve.acc2 = f["acc2"]
+        _evolvebin.evolve.epsnov = f["epsnov"]
+        _evolvebin.evolve.eddfac = f["eddfac"]
+        _evolvebin.evolve.gamma = f["gamma"]
+        _evolvebin.evolve.lbv_flag = f["LBV_flag"]
+        _evolvebin.evolve.bdecayfac = f["bdecayfac"]
+        _evolvebin.evolve.bconst = f["bconst"]
+        _evolvebin.evolve.ck = f["ck"]
+        _evolvebin.evolve.windflag = f["windflag"]
+        _evolvebin.evolve.qcflag = f["qcflag"]
+        _evolvebin.evolve.eddlimflag = f["eddlimflag"]
+        _evolvebin.evolve.fprimc_array = f["fprimc_array"]
+        _evolvebin.evolve.idum1 = f["randomseed"]
+        _evolvebin.evolve.bhspinflag = f["bhspinflag"]
+        _evolvebin.evolve.bhspinmag = f["bhspinmag"]
+        _evolvebin.evolve.rejuv_fac = f["rejuv_fac"]
+        _evolvebin.evolve.rejuvflag = f["rejuvflag"]
+        _evolvebin.evolve.htpmb = f["htpmb"]
+        _evolvebin.evolve.st_cr = f["ST_cr"]
+        _evolvebin.evolve.st_tide = f["ST_tide"]
+        _evolvebin.evolve.rembar_massloss = f["rembar_massloss"]
+        #_evolvebin.evolve.zsun = f["zsun"]
+        _evolvebin.evolve.kickflag = f["kickflag"]
+        _evolvebin.evolve.mm_mu_ns = f["mm_mu_ns"]
+        _evolvebin.evolve.mm_mu_bh = f["mm_mu_bh"]
+        _evolvebin.evolve.using_cmc = 0
         
         if f["stellar_engine"] == "sse":
-            _evolvebin.se_flags.using_sse = 1
-            _evolvebin.se_flags.using_metisse = 0
-            _evolvebin.metissevars.path_to_tracks = ""
-            _evolvebin.metissevars.path_to_he_tracks = ""
-            _evolvebin.metissevars.z_match_limit = f["z_accuracy_limit"]
-            _evolvebin.metissevars.METISSE_verbose = False
+            _evolvebin.evolve.using_sse = 1
+            _evolvebin.evolve.using_metisse = 0
+            _evolvebin.evolve.path_to_tracks = ""
+            _evolvebin.evolve.path_to_he_tracks = ""
+            _evolvebin.evolve.z_match_limit = f["z_accuracy_limit"]
+            _evolvebin.evolve.METISSE_verbose = False
         elif f["stellar_engine"] == "metisse":
-            _evolvebin.se_flags.using_metisse = 1
-            _evolvebin.se_flags.using_sse = 0
-            _evolvebin.metissevars.path_to_tracks = f["path_to_tracks"]
-            _evolvebin.metissevars.path_to_he_tracks = f["path_to_he_tracks"]
-            _evolvebin.metissevars.z_match_limit = f["z_accuracy_limit"]
-            _evolvebin.metissevars.METISSE_verbose = False
+            _evolvebin.evolve.using_metisse = 1
+            _evolvebin.evolve.using_sse = 0
+            _evolvebin.evolve.path_to_tracks = f["path_to_tracks"]
+            _evolvebin.evolve.path_to_he_tracks = f["path_to_he_tracks"]
+            _evolvebin.evolve.z_match_limit = f["z_accuracy_limit"]
+            _evolvebin.evolve.METISSE_verbose = False
         else:
             raise ValueError("Use either 'sse' or 'metisse' as stellar engine")
+        #_evolvebin.evolve.n_col_bpp = f["n_col_bpp"]
+        _evolvebin.evolve.col_inds_bpp = f["col_inds_bpp"]
+        #_evolvebin.evolve.n_col_bcm = f["n_col_bcm"]
+        _evolvebin.evolve.col_inds_bcm = f["col_inds_bcm"]
 
-        _evolvebin.col.n_col_bpp = f["n_col_bpp"]
-        _evolvebin.col.col_inds_bpp = f["col_inds_bpp"]
-        _evolvebin.col.n_col_bcm = f["n_col_bcm"]
-        _evolvebin.col.col_inds_bcm = f["col_inds_bcm"]
-
-        [zpars, kick_info, bpp_index, bcm_index] = _evolvebin.evolv2([f["kstar_1"], f["kstar_2"]],
+        [kick_info, bpp_index, bcm_index] = _evolvebin.evolve.evolv2([f["kstar_1"], f["kstar_2"]],
                                                               [f["mass_1"], f["mass_2"]],
                                                               f["porb"], f["ecc"], f["metallicity"], 
                                                               f["tphysf"], f["dtp"],
@@ -803,21 +801,22 @@ def _evolve_single_system(f, zpars=None):
                                                               [f["tms_1"], f["tms_2"]],
                                                               [f["bhspin_1"], f["bhspin_2"]],
                                                               f["tphys"],
-                                                              zpars,
-                                                              f["kick_info"])
+                                                              zpars)
+
+        print(zpars, kick_info, bpp_index, bcm_index)
         if bpp_index<0:
             raise ValueError("Failed in METISSE_zcnsts")
         else:
-            bpp = _evolvebin.binary.bpp[:bpp_index, :f["n_col_bpp"]].copy()
-            _evolvebin.binary.bpp[:bpp_index, :f["n_col_bpp"]] = np.zeros(bpp.shape)
-            bcm = _evolvebin.binary.bcm[:bcm_index, :f["n_col_bcm"]].copy()
-            _evolvebin.binary.bcm[:bcm_index, :f["n_col_bcm"]] = np.zeros(bcm.shape)
+            bpp = _evolvebin.evolve.bpp[:bpp_index, :f["n_col_bpp"]].copy()
+            _evolvebin.evolve.bpp[:bpp_index, :f["n_col_bpp"]] = np.zeros(bpp.shape)
+            bcm = _evolvebin.evolve.bcm[:bcm_index, :f["n_col_bcm"]].copy()
+            _evolvebin.evolve.bcm[:bcm_index, :f["n_col_bcm"]] = np.zeros(bcm.shape)
 
             bpp = np.hstack((bpp, np.ones((bpp.shape[0], 1))*f["bin_num"]))
             bcm = np.hstack((bcm, np.ones((bcm.shape[0], 1))*f["bin_num"]))
             kick_info = np.hstack((kick_info, np.ones((kick_info.shape[0], 1))*f["bin_num"]))
 
-        return f, bpp, bcm, kick_info, _evolvebin.snvars.natal_kick_array.copy(), zpars
+        return f, bpp, bcm, kick_info, _evolvebin.evolve.natal_kick_array.copy(), zpars
 
     except Exception as e:
         print(e)
@@ -893,7 +892,6 @@ def read_tracks_for_METISSE(path_to_tracks,IBT_Z,z_accuracy_limit,is_he):
                          "and supply one that is in this list: {0}".format(mets))
 
     assert fmt_dict_keep is not None 
-
 
     if is_he:
         # Pass the format dictionaries for helium tracks:

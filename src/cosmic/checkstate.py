@@ -73,15 +73,15 @@ def set_checkstates(timestep_conditions=[]):
             would skip to only printing the final state
     """
     # assume that we are not doing any special dtp setting
-    _evolvebin.check_dtp.check_dtp = 0
+    _evolvebin.evolve.check_dtp = 0
 
     # Set the default state for checkstate which is that there are no
     # conditional states at which to set a special dtp
-    checkstate_array = getattr(_evolvebin.checkstate_array, "checkstate_array")
+    checkstate_array = getattr(_evolvebin.evolve, "checkstate_array")
     checkstate_array[:, :] = DEFAULT_CONDITIONS
 
     # Again we assume that no condtions exist to set a special dtp
-    dtp_state = getattr(_evolvebin.checkstate_params, "dtp_state")
+    dtp_state = getattr(_evolvebin.evolve, "dtp_state")
     dtp_state[:] = DEFAULT_DTP_STATE
 
     # avoid array overflow
@@ -90,7 +90,7 @@ def set_checkstates(timestep_conditions=[]):
 
     for index, condition in enumerate(timestep_conditions):
         # we are checking for conditions
-        _evolvebin.check_dtp.check_dtp = 1
+        _evolvebin.evolve.check_dtp = 1
         conditions = parse_column_filters(condition)
         for param in conditions:
             # ensure that the param is in the checkstate_array
@@ -103,7 +103,7 @@ def set_checkstates(timestep_conditions=[]):
             # find where in the checkstate_array this param is
             param_index = numpy.argwhere(param[0].lower() == CHECKSTATE_COLUMNS)
             if param[0] == "dtp":
-                dtp_state = getattr(_evolvebin.checkstate_params, "dtp_state")
+                dtp_state = getattr(_evolvebin.evolve, "dtp_state")
                 if param[2] == "None":
                     dtp_state[index] = 13700.0
                 else:
