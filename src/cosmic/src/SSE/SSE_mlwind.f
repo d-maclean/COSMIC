@@ -269,7 +269,7 @@
       real*8 lum,r,mt,z,alpha,x
       integer kw
       real*8 MLalpha
-      !external MLalpha
+      external MLalpha
 
       x = 1.0d-5*r*sqrt(lum)
       alpha = 0.d0

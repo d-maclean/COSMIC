@@ -135,7 +135,7 @@
 *
       real*8 kick_info(2,19)
       real ran3,xx
-      !external ran3
+      external ran3
       external RandomTruncatedNormal
 *
       output = .false. !useful for debugging...
@@ -811,7 +811,7 @@
 *
       real*8 kick_info(2,19)
       real ran3,xx
-      !external ran3
+      external ran3
 *
       output = .false. !useful for debugging...
       safety = 0
@@ -1373,7 +1373,7 @@
 *
       INTEGER idum
       real ran3
-      !external ran3
+      external ran3
       REAL*8 vx1,vy1,vz1,alpha,gamma,beta,pi,twopi,vx2,vy2,vz2
       REAL*8 cg,sg,ca,sa,cb,sb,vx1s,vy1s,vz1s,vx2s,vy2s,vz2s
 *
