@@ -517,7 +517,7 @@
       !INCLUDE 'const_bse.h'
       
       real ran3
-      !EXTERNAL ran3
+      EXTERNAL ran3
       EXTERNAL RandomTruncatedNormal
 
       real*8 mc, mc_tot, mt
@@ -614,7 +614,7 @@
       REAL*8 fallback
 
       real ran3
-      !EXTERNAL ran3
+      EXTERNAL ran3
 
       real*8 mc, mc_tot, mt, met, u_NS
       real*8 log10Z_bounded
@@ -724,7 +724,7 @@ collapse BH if the CO core mass is outside the Maltsev+25 range
       !INCLUDE 'const_bse.h'
 
       real  ran3
-      !EXTERNAL ran3
+      EXTERNAL ran3
 
       real*8 mc, bhspin
 
