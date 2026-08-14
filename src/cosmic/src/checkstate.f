@@ -31,7 +31,7 @@
       use constants
       use evolve
       IMPLICIT NONE
-      INCLUDE 'checkstate.h'
+      !INCLUDE 'checkstate.h'
       !INCLUDE 'const_bse.h'
       INTEGER jj,ii,param_index,binstate
       INTEGER kstar1,kstar2

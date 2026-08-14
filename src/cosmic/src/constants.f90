@@ -1,6 +1,6 @@
 module constants
 
-  integer, parameter:: dp = selected_real_kind(p = 15)
+  integer,parameter:: dp = selected_real_kind(p=13,r=200)
 
   real(dp), public:: zsun = 0.014d0
   real(dp), public, protected::&

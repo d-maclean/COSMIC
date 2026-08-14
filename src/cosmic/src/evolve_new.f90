@@ -64,6 +64,8 @@ module evolve
   character(strlen):: path_to_tracks,path_to_he_tracks
   real(dp):: z_match_limit
   logical:: METISSE_verbose, bcm_err
+  real(dp):: dtp_state(15)
+  real(dp):: checkstate_array(15,129)
   integer, dimension(0:15,0:15) :: ktype
 
   real(dp):: mc_he(2),mc_co(2)
@@ -120,7 +122,7 @@ contains
     real(dp):: ran3
     real(dp):: z,tm,tn,m0,mt,rm,lum,mc,rc,me,re,k2,age,dtm,dtr
     !real(dp):: mc_he(2),mc_co(2)
-    real(dp):: tscls(20),lums(10),GB(10),zpars(20)
+    real(dp):: tscls(20),lums(10),GB(10)
     real(dp):: zero,ngtv,ngtv2,mt2,rrl1,rrl2,mcx,teff1,teff2
     real(dp):: mass1i,mass2i,tbi,ecci
     real(dp):: rl,mlwind,vrotf,corerd,f_fac
@@ -132,8 +134,11 @@ contains
     real(dp):: wx = 9.46d8
     real(dp):: mr23yr = 0.4311d0
 
-    integer, intent(out) :: bpp_index_out, bcm_index_out
-    real(dp), dimension(2,19), intent(out) :: kick_info
+    real(dp),intent(inout):: zpars(20)
+    real(dp),intent(out):: kick_info(2,19)
+    integer,intent(out):: bpp_index_out, bcm_index_out
+    !f2py required,intent(inout):: zpars
+    !f2py intent(out):: kick_info, bpp_index_out, bcm_index_out
 
     logical:: coel,com,prec,inttry,change,snova,sgl,rlof,cntct
     logical:: supedd,novae,disk,inspiral
@@ -144,7 +149,7 @@ contains
     integer ierr
 
     ierr = 0
-    output = .false.
+    output = .true.
 
     ! Initialize the parameters.
     ! Set the seed for the random number generator.
@@ -664,7 +669,7 @@ contains
               ! Spin up of star.
               dspint(k) = (3.d0*q(3-k)*tcqr/(rg2*omecc2**6))*&
                 (f2*oorb - sqome3*f5*ospin(k))
-              ! if(output) write(*,*)'502 3:',k,dspint(k),tcqr
+                if(output) write(*,*)'502 3:',k,dspint(k),tcqr
 
               ! Calculate the equilibrium spin at which no angular momentum
               ! can be transferred.
@@ -703,7 +708,7 @@ contains
             dmt(k) = 0.d0
             djspint(k) = (2.d0/3.d0)*dmr(k)*rad(k)*rad(k)*&
               ospin(k)
-            ! if(output) write(*,*)'503 1:',k,djspint(k)
+              if(output) write(*,*)'503 1:',k,djspint(k)
 
             ! Evaluate convective/radiative limits for a variety of stars as based
             ! on the work of Belczynski et al. (2008). As option.
@@ -772,7 +777,7 @@ contains
                 djspint(k) = djspint(k) + djmb
               endif
             endif
-            ! if(output) write(*,*)'503 2:',k,djspint(k),djmb
+             if(output) write(*,*)'503 2:',k,djspint(k),djmb
 
             if(djmb > tiny) then
               dtj = 0.03d0 * jspin(k)/abs(djmb)
@@ -811,7 +816,7 @@ contains
               omdot = Kconst*B(k)*B(k)*ospin(k)**3
               djmb = 0.4d0*mass(k)*rad(k)*rad(k)*omdot
               djspint(k) = djspint(k) + djmb
-              !if(output) write(*,*)'503 2:',k,djmb,djspint(k)
+              if(output) write(*,*)'503 2:',k,djmb,djspint(k)
               ! Consider update of time-stepping due to dj, i.e. dt = dj/(dj/dt).
               if(djmb > tiny)then
                 dtj = 0.1d0*(jspin(k)/abs(djmb))
@@ -843,7 +848,7 @@ contains
               dt = 1.0d6*dtm
             endif
           endif
-          ! if(output) write(*,*)'after 1p ml: ',tphys,k,dt,dtm
+          if(output) write(*,*)'after 1p ml: ',tphys,k,dt,dtm
         enddo
 
 
@@ -861,7 +866,7 @@ contains
                 k3*massc(k)*radc(k)*radc(k))*dspint(k)
               djorb = djorb + djt
               djspint(k) = djspint(k) - djt
-              !if(output) write(*,*)'505: ',k,djt,djspint(k),jspin(k),dt
+              if(output) write(*,*)'505: ',k,djt,djspint(k),jspin(k),dt
             endif
           endif
 
