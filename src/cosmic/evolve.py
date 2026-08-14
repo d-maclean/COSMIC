@@ -782,7 +782,7 @@ def _evolve_single_system(f, zpars=None):
         #_evolvebin.evolve.n_col_bcm = f["n_col_bcm"]
         _evolvebin.evolve.col_inds_bcm = f["col_inds_bcm"]
 
-        [kick_info, bpp_index, bcm_index] = _evolvebin.evolve.evolv2([f["kstar_1"], f["kstar_2"]],
+        [zpars, kick_info, bpp_index, bcm_index] = _evolvebin.evolve.evolv2([f["kstar_1"], f["kstar_2"]],
                                                               [f["mass_1"], f["mass_2"]],
                                                               f["porb"], f["ecc"], f["metallicity"], 
                                                               f["tphysf"], f["dtp"],
