@@ -1,36 +1,37 @@
 module constants
 
-  integer,parameter:: dp = selected_real_kind(p=13,r=200)
+  !use iso_fortran_env, only: dp => real64
+  !integer, parameter:: dp = 8
 
-  real(dp), public:: zsun = 0.014d0
-  real(dp), public, protected::&
+  real(kind=8), public:: tiny = 1.d-14
+  real(kind=8), public, protected::&
     yeardy = 365.24d0,&
     aursun = 214.95d0,&
     yearsc = 3.1557d7,&
-    tiny = 1d-14,&
     pi = ACOS(-1.d0),&
     twopi = 2.d0*ACOS(-1.d0),&
     mch = 1.44d0
 
   ! key evolutionary stages
-  integer, public, protected::&
-    initial_state = 1,&
-    kstar_change = 2,&
-    begin_RLOF = 3,&
-    end_RLOF = 4,&
-    contact = 5,&
-    coalescence = 6,&
-    begin_CE = 7,&
-    end_CE = 8,&
-    no_remnant_leftover = 9,&
-    final_state = 10,&
-    binary_disruption = 11,&
-    begin_symbiotic_phase = 12,&
-    end_symbiotic_phase = 13,&
-    blue_straggler = 14,&
-    supernova_primary = 15,&
-    supernova_secondary = 16,&
-    error_rlof_timeout = 100
+  real(kind=8), public, protected::&
+    initial_state = 1d0,&
+    kstar_change = 2d0,&
+    begin_RLOF = 3d0,&
+    end_RLOF = 4d0,&
+    contact = 5d0,&
+    coalescence = 6d0,&
+    begin_CE = 7d0,&
+    end_CE = 8d0,&
+    no_remnant_leftover = 9d0,&
+    final_state = 10d0,&
+    binary_disruption = 11d0,&
+    begin_symbiotic_phase = 12d0,&
+    end_symbiotic_phase = 13d0,&
+    blue_straggler = 14d0,&
+    supernova_primary = 15d0,&
+    supernova_secondary = 16d0,&
+    error_rlof_timeout = 100d0,&
+    error_METISSE_error = 101d0
 
   ! SSE star types
   ! code from Poojan Agrawal, METISSE
@@ -91,7 +92,7 @@ module constants
     qc_belczynski_08 = 4,&
     qc_neijsssel_20 = 5
 
-  real(dp),public,protected::& ! default qcrit values for determining onset of CE
+  real(kind=8),public,protected::& ! default qcrit values for determining onset of CE
     qc_array_bse(0:15) = &
     [0.695d0,3.d0,4.d0,-1d0,3.d0,-1.d0,-1.d0,3.d0,&
     0.874d0,0.784d0,0.628d0,0.628d0,0.628d0,0.628d0,0.628d0, -1.d0],&
