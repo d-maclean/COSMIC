@@ -108,11 +108,13 @@
         if (tabname .eq. 'bpp') then
             jp = MIN(900,jp + 1)        ! Why is the 900 limit here??
             do 117, col_ind = 1, n_col_bpp
+                if (col_inds_bpp(col_ind) < 1) cycle
                 bpp(jp,col_ind) = all_cols(col_inds_bpp(col_ind))
 117         continue
         else if (tabname .eq. 'bcm') then
             jp = jp + 1
             do 118, col_ind = 1, n_col_bcm
+                if (col_inds_bcm(col_ind) < 1) cycle
                 bcm(jp,col_ind) = all_cols(col_inds_bcm(col_ind))
 118         continue
         end if
