@@ -1,6 +1,6 @@
 module evolve
 
-  use iso_fortran_env, only: dp => real64
+  !use iso_fortran_env, only: dp => real64
   use constants
   implicit none
 
@@ -9,7 +9,7 @@ module evolve
   integer, parameter:: max_bpp = 1000
   integer, parameter:: n_col_bpp = 52
   integer, parameter:: n_col_bcm = 52
-  !integer, parameter:: n_col_kick_info = 19
+  integer, parameter:: n_col_kick_info = 19
 
   ! flags & settings
   integer:: tflag,ifflag,remnantflag,wdflag,bhflag,windflag,qcflag
@@ -17,43 +17,43 @@ module evolve
   integer:: htpmb,ST_cr,ST_tide,bdecayfac,grflag,bhms_coll_flag
   integer:: wd_mass_lim,maltsev_mode
 
-  real(dp):: don_lim,acc_lim(2),Mbh_initial,smt_periastron_check
+  real(kind=8):: don_lim,acc_lim(2),Mbh_initial,smt_periastron_check
   integer:: ceflag,cekickflag,cemergeflag,cehestarflag,ussn
   integer:: pisn_track(2)
-  real(dp):: neta,bwind,hewind,beta,xi,acc2,epsnov,zsun
-  real(dp):: eddfac,gamma
+  real(kind=8):: neta,bwind,hewind,beta,xi,acc2,epsnov,zsun
+  real(kind=8):: eddfac,gamma
   integer:: LBV_flag
-  real(dp):: alpha1(2),lambdaf
-  real(dp):: qcrit_array(16)
-  real(dp):: bconst,CK
+  real(kind=8):: alpha1(2),lambdaf
+  real(kind=8):: qcrit_array(16)
+  real(kind=8):: bconst,CK
   integer:: kickflag,fryer_mass_limit
-  real(dp):: sigma,sigmadiv,bhsigmafrac,pisn,mxns
-  real(dp):: polar_kick_angle
-  real(dp):: ppi_co_shift,ppi_extra_ml
-  real(dp):: ecsn,ecsn_mlow,bhspinmag,rembar_massloss
-  real(dp):: mm_mu_ns, mm_mu_bh, maltsev_fallback,maltsev_pf_prob
-  real(dp):: natal_kick_array(2,5)
-  real(dp):: fryer_fmix,fryer_mcrit_nsbh
-  real(dp):: fprimc_array(16)
-  real(dp):: rejuv_fac
+  real(kind=8):: sigma,sigmadiv,bhsigmafrac,pisn,mxns
+  real(kind=8):: polar_kick_angle
+  real(kind=8):: ppi_co_shift,ppi_extra_ml
+  real(kind=8):: ecsn,ecsn_mlow,bhspinmag,rembar_massloss
+  real(kind=8):: mm_mu_ns, mm_mu_bh, maltsev_fallback,maltsev_pf_prob
+  real(kind=8):: natal_kick_array(2,5)
+  real(kind=8):: fryer_fmix,fryer_mcrit_nsbh
+  real(kind=8):: fprimc_array(16)
+  real(kind=8):: rejuv_fac
   integer:: id1_pass,id2_pass,using_cmc
-  real(dp):: merger
-  real(dp):: pts1,pts2,pts3
-  real(dp):: dmmax,drmax
+  real(kind=8):: merger
+  real(kind=8):: pts1,pts2,pts3
+  real(kind=8):: dmmax,drmax
   integer:: idum1, idum2, iy, ir(32)
   integer:: bpp_ind, check_dtp
   integer:: col_inds_bpp(52), col_inds_bcm(52)
   integer:: using_metisse, using_sse
   character(strlen):: path_to_tracks,path_to_he_tracks
-  real(dp):: z_match_limit
+  real(kind=8):: z_match_limit
   logical:: METISSE_verbose, bcm_err
-  real(dp):: dtp_state(15)
-  real(dp):: checkstate_array(15,129)
+  real(kind=8):: dtp_state(15)
+  real(kind=8):: checkstate_array(15,129)
   integer:: ktype(0:14,0:14)
 
-  real(dp):: mc_he(2),mc_co(2)
-  real(dp):: bpp(max_bpp,n_col_bpp)
-  real(dp):: bcm(loop,n_col_bcm)
+  real(kind=8):: mc_he(2),mc_co(2)
+  real(kind=8):: bpp(max_bpp,n_col_bpp)
+  real(kind=8):: bcm(loop,n_col_bcm)
 
 
 contains
@@ -188,55 +188,60 @@ contains
     integer:: iter,intpol,k,ip,j1,j2
     integer:: bcm_index_out, bpp_index_out!, kstar1, kstar2
     integer:: kcomp1,kcomp2,formation(2)
-    integer:: kstar(2),kw,kst,kw1,kw2,kmin,kmax
-    integer:: kstar1_bpp,kstar2_bpp
-
-    real(dp):: km,km0,tphys,tphys0,dtm0,tphys00,tphysfhold
-    real(dp):: tphysf,dtp,tsave,dtp_original
-    real(dp):: aj(2),aj0(2),epoch(2),tms(2),tbgb(2),tkh(2),dtmi(2)
-    real(dp):: mass0(2),mass(2),massc(2),menv(2),mass00(2),mcxx(2)
-    real(dp):: mass1_bpp,mass2_bpp
-    real(dp):: rad(2),rol(2),rol0(2),rdot(2),radc(2),renv(2),radx(2)
-    real(dp):: lumin(2),k2str(2),q(2),dms(2),dmr(2),dmt(2)
-    real(dp):: dml,vorb2,vwind2,omv2,ivsqm,lacc,kick_info(2,19)
-    real(dp):: sep,dr,tb,dme,tdyn,taum,dm1,dm2,dmchk,qc,dt,pd,rlperi
-    real(dp):: m1ce,m2ce,tmsnew,dm22,mew
-    real(dp):: ecc,ecc1,tc,tcirc,ttid,ecc2,omecc2,sqome2,sqome3,sqome5
-    real(dp):: f1,f2,f3,f4,f5,f,raa2,raa6,eqspin,rg2,tcqr,gammadisc
-    real(dp):: jspin(2),ospin(2),jorb,oorb,jspbru,ospbru
-    real(dp):: bhspin(2)
-    real(dp):: delet,delet1,dspint(2),djspint(2),djtx(2)
-    real(dp):: dtj,djorb,djgr,djmb,djt,djtt,rmin,rdisk
-    real(dp):: etaBH,maxspinBH
-
+    integer:: kst,kw1,kw2,kmin,kmax
+    integer:: kstar1_bpp,kstar2_bpp,kw
+    integer:: kstar(2)
+    real(kind=8):: mass(2),tb,ecc,z,tphysf,dtp
+    real(kind=8):: mass0(2),rad(2),lumin(2),massc(2)
+    real(kind=8):: radc(2),menv(2),renv(2),ospin(2)
+    real(kind=8):: B_0(2),bacc(2),tacc(2),epoch(2),tms(2)
+    real(kind=8):: bhspin(2),tphys
+    real(kind=8):: km,km0,tphys0,dtm0,tphys00,tphysfhold
+    real(kind=8):: tsave,dtp_original
+    real(kind=8):: aj(2),aj0(2),tbgb(2),tkh(2),dtmi(2)
+    real(kind=8):: mass00(2),mcxx(2)
+    real(kind=8):: mass1_bpp,mass2_bpp
+    real(kind=8):: rol(2),rol0(2),rdot(2),radx(2)
+    real(kind=8):: k2str(2),q(2),dms(2),dmr(2),dmt(2)
+    real(kind=8):: dml,vorb2,vwind2,omv2,ivsqm,lacc!,kick_info(2,19)
+    real(kind=8):: sep,dr,dme,tdyn,taum,dm1,dm2,dmchk,qc,dt,pd,rlperi
+    real(kind=8):: m1ce,m2ce,tmsnew,dm22,mew
+    real(kind=8):: ecc1,tc,tcirc,ttid,ecc2,omecc2,sqome2,sqome3,sqome5
+    real(kind=8):: f1,f2,f3,f4,f5,f,raa2,raa6,eqspin,rg2,tcqr,gammadisc
+    real(kind=8):: jspin(2),jorb,oorb,jspbru,ospbru
+    real(kind=8):: fallback
+    real(kind=8):: delet,delet1,dspint(2),djspint(2),djtx(2)
+    real(kind=8):: dtj,djorb,djgr,djmb,djt,djtt,rmin,rdisk
+    real(kind=8):: etaBH,maxspinBH
     integer:: pulsar
     integer:: mergemsp,merge_mem,notamerger,binstate,mergertype
-    real(dp):: fallback,sigmahold
-    real(dp):: vk,u1,u2,s,Kconst,betahold,convradcomp(2),teff(2)
-    real(dp):: B_0(2),bacc(2),tacc(2),xip,xihold
-    real(dp):: deltam1_bcm,deltam2_bcm,b01_bcm,b02_bcm
-    real(dp):: B(2),Bbot,omdot,b_mdot,b_mdot_lim,evolve_type
+    real(kind=8):: sigmahold
+    real(kind=8):: vk,u1,u2,s,Kconst,betahold,convradcomp(2),teff(2)
+    real(kind=8):: xip,xihold
+    real(kind=8):: deltam1_bcm,deltam2_bcm,b01_bcm,b02_bcm
+    real(kind=8):: B(2),Bbot,omdot,b_mdot,b_mdot_lim,evolve_type
     !COMMON /fall/fallback
-    real(dp):: ran3
+    real(kind=8):: ran3
     EXTERNAL ran3
-    real(dp):: z,tm,tn,m0,mt,rm,lum,mc,rc,me,re,k2,age,dtm,dtr
-    real(dp):: tscls(20),lums(10),GB(10),zpars(20)
-    real(dp):: zero,ngtv,ngtv2,mt2,rrl1,rrl2,mcx,teff1,teff2
-    real(dp):: mass1i,mass2i,tbi,ecci
+    real(kind=8):: tm,tn,m0,mt,rm,lum,mc,rc,me,re,k2,age,dtm,dtr
+    real(kind=8):: tscls(20),lums(10),GB(10),zpars(20)
+    real(kind=8):: zero,ngtv,ngtv2,mt2,rrl1,rrl2,mcx,teff1,teff2
+    real(kind=8):: mass1i,mass2i,tbi,ecci
     logical:: coel,com,prec,inttry,change,snova,sgl
     logical:: supedd,novae,disk,inspiral
     logical:: iplot,isave
-    real(dp):: rl,mlwind,vrotf,corerd,f_fac
+    real(kind=8):: rl,mlwind,vrotf,corerd,f_fac
     external rl,mlwind,vrotf,corerd
-    real(dp) qc_fixed
+    real(kind=8) qc_fixed
     logical:: switchedCE,disrupt
     logical:: output
     integer:: err
 
-    real(dp), parameter:: k3 = 0.21d0,mr23yr = 0.4311d0
-    real(dp), parameter:: acc1=3.920659d+08
-    real(dp), parameter:: kw3=619.2d0, wsun=9.46d7, wx=9.46d8
+    real(kind=8), parameter:: k3 = 0.21d0,mr23yr = 0.4311d0
+    real(kind=8), parameter:: acc1=3.920659d+08
+    real(kind=8), parameter:: kw3=619.2d0, wsun=9.46d7, wx=9.46d8
 
+    real(kind=8), intent(out):: kick_info(2,19)
     !f2py intent(in) kstar
     !f2py intent(in) mass
     !f2py intent(in) tb
@@ -260,9 +265,9 @@ contains
     !f2py intent(in) bhspin
     !f2py intent(in) tphys
     !f2py intent(in,out) zpars
-    !f2py intent(out) kick_info
-    !f2py intent(out) bpp_index_out
-    !f2py intent(out) bcm_index_out
+    !f2py intent(hide,out) kick_info
+    !f2py intent(hide,out) bpp_index_out
+    !f2py intent(hide,out) bcm_index_out
 
     if(using_cmc==0)then
       CALL instar
@@ -318,7 +323,7 @@ contains
     notamerger = 0 !if 0 you reset the merger NS product to new factory settings else you don't.
     mergemsp = 1 !if set to 1 any NS that merges with another star where the NS is an MSP stays an MSP...
     merge_mem = 0
-    output = .true.  ! .true. turns on, .false. turns off.
+    output = .false.  ! .true. turns on, .false. turns off.
     !                       WARNING: can fill up the output file very quickly.
     !                       With N=2e6 .stdout was 3.2 GB in 6 mins. If needed you can
     !                       be more selective with outputting, but must add this yourself!
@@ -4515,7 +4520,10 @@ contains
       bpp_index_out = bpp_ind
     endif
     if (using_METISSE==1) call dealloc_track()
-
+    !write(*,*) 'finished!'
+    !write(*,*) 'bpp:', shape(bpp)
+    !write(*,*) 'bcm:', shape(bcm)
+    !write(*,*) 'kick_info:', shape(kick_info)
   END SUBROUTINE evolv2
   !**
 
