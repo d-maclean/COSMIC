@@ -1,7 +1,7 @@
 ***
       SUBROUTINE SSE_gntage(mc,mt,kw,zpars,m0,aj,k)
       use constants
-      use evolve
+      !use evolve
       IMPLICIT NONE
       !INCLUDE '../const_bse.h'
 *

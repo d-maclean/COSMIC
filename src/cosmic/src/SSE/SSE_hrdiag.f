@@ -4,7 +4,7 @@
      &                  bhspin,kidx)
       
       use constants
-      use evolve
+      use evolve, only: mc_he,mc_co,ST_tide,wdflag
       IMPLICIT NONE
       !INCLUDE '../const_bse.h'
 *
@@ -36,7 +36,7 @@
       parameter(mlp=12.d0)!,tiny=1.0d-14)
       real*8 mass0,mt0,mtc
       !common /fall/fallback
-      REAL*8 fallback
+      !REAL*8 fallback
       REAL ran3
       EXTERNAL ran3
 *

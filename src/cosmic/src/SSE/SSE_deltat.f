@@ -1,7 +1,7 @@
 ***
       SUBROUTINE SSE_deltat(kw,age,tm,tn,tscls,dt,dtr)
       use constants
-      use evolve
+      use evolve, only: pts1,pts2,pts3
       IMPLICIT NONE
       !INCLUDE '../const_bse.h'
 *
