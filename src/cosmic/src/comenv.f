@@ -8,7 +8,10 @@
      &                  lumin,B_0,bacc,tacc,epoch,menv_bpp,renv_bpp,
      &                  deltam_1,deltam_2,dtm)
       use constants
-      use evolve
+      use evolve, only: using_CMC,using_METISSE,using_SSE,lambdaf,ceflag
+      use evolve, only: cemergeflag,cekickflag,ktype,ecsn,ecsn_mlow,sigma
+      use evolve, only: sigmadiv,mc_he,mc_co,ktype,cehestarflag,ussn,alpha1
+      !use evolve
       IMPLICIT NONE
       !INCLUDE 'const_bse.h'
 *

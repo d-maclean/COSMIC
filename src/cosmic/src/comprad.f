@@ -1,6 +1,6 @@
 ***
       SUBROUTINE compute_r(mass,z,num,rad)
-      use evolve
+      use evolve, only: using_METISSE, mc_he, mc_co
       IMPLICIT NONE
       !INCLUDE 'const_bse.h'
 
