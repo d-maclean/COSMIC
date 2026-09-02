@@ -49,7 +49,7 @@ module evolve
   logical:: METISSE_verbose, bcm_err
   real(kind=8):: dtp_state(15)
   real(kind=8):: checkstate_array(15,129)
-  integer:: ktype(0:14,0:14)
+  integer:: ktype(0:15,0:15)
 
   real(kind=8):: mc_he(2),mc_co(2)
   real(kind=8):: bpp(max_bpp,n_col_bpp)

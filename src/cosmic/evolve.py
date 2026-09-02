@@ -341,8 +341,8 @@ class Evolve(object):
 
         # if the user wants to use METISSE then we need to load the necessary tracks
         if initialbinarytable['stellar_engine'].iloc[0] == 'metisse':
-            _evolvebin.se_flags.using_metisse = 1
-            _evolvebin.se_flags.using_sse = 0
+            _evolvebin.evolve.using_metisse = 1
+            _evolvebin.evolve.using_sse = 0
 
             # make sure all of the SSE columns are there
             if not set(['path_to_tracks', 'path_to_he_tracks', 'z_accuracy_limit']).issubset(initialbinarytable.columns):
@@ -442,7 +442,6 @@ class Evolve(object):
         if new_cols:
             new_df = pd.DataFrame(new_cols, index=idx)
             initialbinarytable = pd.concat([initialbinarytable, new_df], axis=1)
-
 
 
         # Here we perform two checks
@@ -568,7 +567,6 @@ class Evolve(object):
         # Allow a user to specify a custom time step sampling for certain parts of the evolution
         timestep_conditions = kwargs.pop('timestep_conditions', [])
         set_checkstates(timestep_conditions=timestep_conditions)
-        print("setting col_inds_bpp")
         # set the indices of the columns to include in bpp table (+1 because fortran is 1-indexed)
         col_inds_bpp = np.zeros(len(ALL_COLUMNS), dtype=int)
         col_inds_bpp[:len(bpp_columns)] = [ALL_COLUMNS.index(col) + 1 for col in bpp_columns]
@@ -586,13 +584,11 @@ class Evolve(object):
 
         # evolve one system to get zpars
         _, _, _, _, _, zpars = _evolve_single_system(initial_conditions[0], None)
-
         # helper to collect results with an optional tqdm progress bar
         def _collect(pool, func, items, total=None):
             if progress:
                 return list(tqdm.tqdm(pool.imap(func, items), total=total, desc='Evolving', unit='sys'))
             return list(pool.map(func, items))
-
         # check if a pool was passed
         if pool is None:
             with MultiPool(processes=nproc) as pool:
@@ -635,47 +631,71 @@ class Evolve(object):
         bcm_arrays = np.vstack(output[:, 2])
         kick_info_arrays = np.vstack(output[:, 3])
 
-        natal_kick_arrays = np.vstack(output[:, 4])
+        natal_kick_arrays = np.vstack(output[:, 4].copy())
         natal_kick_arrays = natal_kick_arrays.reshape(-1, 1, len(FLATTENED_NATAL_KICK_COLUMNS))
-
         # update initial table with sampled kicks
         to_add = {}
+        #print(natal_kick_arrays)
+        #a = natal_kick_arrays
+        #print(a.dtype)
+        #print(a.shape)
+        #print(a.strides)
+        #print(a.flags)
+        #print(a.base)
+        #print(a.flags["F_CONTIGUOUS"])
+        #print(a.flags["C_CONTIGUOUS"])
+        #print(FLATTENED_NATAL_KICK_COLUMNS)
+        #print(np.isin(FLATTENED_NATAL_KICK_COLUMNS,initialbinarytable.columns))
+        print('pre-assign\n',initialbinarytable)
         for idx, column in enumerate(FLATTENED_NATAL_KICK_COLUMNS):
+            #print(idx, column)
+            #print(natal_kick_arrays[:, 0, idx])
+            #print(natal_kick_arrays[:,0,idx].dtype, natal_kick_arrays[:,0,idx].shape)
+            #print(initialbinarytable[column].dtype, initialbinarytable[column].shape)
             if column not in initialbinarytable.columns:
+                print('adding columns')
                 to_add[column] = natal_kick_arrays[:, 0, idx]
             else:
-                initialbinarytable[column] = natal_kick_arrays[:, 0, idx]
-
+                print('assigning to columns')
+                pass
+                #initialbinarytable[column] = natal_kick_arrays[:, 0, idx]
+        print('post assign:\n')
+        print(initialbinarytable)
         # if kicks weren't already present, add them
         if to_add:
+            print('doing to_add')
             natal_kick_df = pd.DataFrame(to_add, index=initialbinarytable.index)
             initialbinarytable = pd.concat([initialbinarytable, natal_kick_df], axis=1)
-
+        print('653')
+        print('doing 1')
         kick_info = pd.DataFrame(kick_info_arrays,
                                  columns=KICK_COLUMNS,
                                  index=kick_info_arrays[:, -1].astype(int))
-
+        print('657')
+        print('doing 2')
         bpp = pd.DataFrame(bpp_arrays,
                            columns=bpp_columns + ["bin_num"],
                            index=bpp_arrays[:, -1].astype(int))
-
+        print('661')
+        print('doing 3')
         bcm = pd.DataFrame(bcm_arrays,
                            columns=bcm_columns + ["bin_num"],
                            index=bcm_arrays[:, -1].astype(int))
-
+        print("done with dataframes")
         # convert a subset of columns to integers
         for col in INTEGER_COLUMNS:
             if col in bpp.columns:
                 bpp[col] = bpp[col].astype(int)
             if col in bcm.columns:
                 bcm[col] = bcm[col].astype(int)
-
+        print("done converting to int")
         # convert merger type to a padded string
         if 'merger_type' in bpp.columns:
             bpp.merger_type = bpp.merger_type.astype(int).astype(str).apply(lambda x: x.zfill(4))
         if 'merger_type' in bcm.columns:
             bcm.merger_type = bcm.merger_type.astype(int).astype(str).apply(lambda x: x.zfill(4))
-
+        print(bpp, bcm, initialbinarytable, kick_info)
+        print("done padding strings; done with all")
         return bpp, bcm, initialbinarytable, kick_info
 
 
@@ -755,7 +775,7 @@ def _evolve_single_system(f, zpars=None):
         _evolvebin.evolve.st_cr = f["ST_cr"]
         _evolvebin.evolve.st_tide = f["ST_tide"]
         _evolvebin.evolve.rembar_massloss = f["rembar_massloss"]
-        #_evolvebin.evolve.zsun = f["zsun"]
+        _evolvebin.evolve.zsun = f["zsun"]
         _evolvebin.evolve.kickflag = f["kickflag"]
         _evolvebin.evolve.mm_mu_ns = f["mm_mu_ns"]
         _evolvebin.evolve.mm_mu_bh = f["mm_mu_bh"]
@@ -778,6 +798,7 @@ def _evolve_single_system(f, zpars=None):
         else:
             raise ValueError("Use either 'sse' or 'metisse' as stellar engine")
         #_evolvebin.evolve.n_col_bpp = f["n_col_bpp"]
+        print(f["col_inds_bpp"])
         _evolvebin.evolve.col_inds_bpp = f["col_inds_bpp"]
         #_evolvebin.evolve.n_col_bcm = f["n_col_bcm"]
         _evolvebin.evolve.col_inds_bcm = f["col_inds_bcm"]
@@ -802,8 +823,8 @@ def _evolve_single_system(f, zpars=None):
                                                               [f["bhspin_1"], f["bhspin_2"]],
                                                               f["tphys"],
                                                               zpars)
-
-        print(zpars, kick_info, bpp_index, bcm_index)
+        print("done with evolve.evolv2")
+        #kick_info = _evolvebin.evolve.kick_info
         if bpp_index<0:
             raise ValueError("Failed in METISSE_zcnsts")
         else:
@@ -815,8 +836,7 @@ def _evolve_single_system(f, zpars=None):
             bpp = np.hstack((bpp, np.ones((bpp.shape[0], 1))*f["bin_num"]))
             bcm = np.hstack((bcm, np.ones((bcm.shape[0], 1))*f["bin_num"]))
             kick_info = np.hstack((kick_info, np.ones((kick_info.shape[0], 1))*f["bin_num"]))
-
-        return f, bpp, bcm, kick_info, _evolvebin.evolve.natal_kick_array.copy(), zpars
+        return f, bpp, bcm, kick_info, _evolvebin.evolve.natal_kick_array, zpars
 
     except Exception as e:
         print(e)
@@ -825,7 +845,7 @@ def _evolve_single_system(f, zpars=None):
 
 def _evolve_multi_system(f):
     try:
-        zpars = np.zeros(20, dtype=float)
+        zpars = np.zeros(20, dtype=np.float64)
         res_bcm = np.zeros(f.shape[0], dtype=object)
         res_bpp = np.zeros(f.shape[0], dtype=object)
         res_kick_info = np.zeros(f.shape[0], dtype=object)
@@ -833,13 +853,13 @@ def _evolve_multi_system(f):
         for i in range(0, f.shape[0]):
 
             # call evolve single system
-            _, bpp, bcm, kick_info, _, zpars = _evolve_single_system(f[i], zpars=zpars)
+            _, bpp, bcm, kick_info, natal_kick_array, zpars = _evolve_single_system(f[i], zpars=zpars)
 
             # add results to pre-allocated list
             res_bpp[i] = bpp
             res_bcm[i] = bcm
             res_kick_info[i] = kick_info
-            res_natal_kick_array[i] = _evolvebin.snvars.natal_kick_array
+            res_natal_kick_array[i] = natal_kick_array #_evolvebin.evolve.natal_kick_array
 
         return f, np.vstack(res_bpp), np.vstack(res_bcm), np.vstack(res_kick_info), np.vstack(res_natal_kick_array)
 
